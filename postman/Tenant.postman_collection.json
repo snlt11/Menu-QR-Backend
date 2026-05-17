@@ -1,0 +1,421 @@
+{
+  "info": {
+    "name": "Menu QR — Tenant Staff",
+    "description": "Authed shop_user routes inside tenant DB context (/api/t/{tenant_slug}/...). Use the Central → Tenant-First Login request first to populate {{tenant_token}}.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{tenant_token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Shop Profile",
+      "item": [
+        {
+          "name": "Show Shop Profile + Settings",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/shop-profile", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "shop-profile"] }
+          }
+        },
+        {
+          "name": "Update Shop Profile",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/shop-profile", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "shop-profile"] },
+            "body": { "mode": "raw", "raw": "{\n  \"phone\": \"09777788899\",\n  \"address\": \"No. 12, Hledan Road, Yangon\",\n  \"service_charge_rate\": 5,\n  \"opening_hours\": \"09:00 - 21:00\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Staff",
+      "item": [
+        {
+          "name": "List Staff",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/staff", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "staff"] }
+          }
+        },
+        {
+          "name": "Create Staff",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/staff", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "staff"] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Ma Hnin\",\n  \"email\": \"hnin@example.com\",\n  \"phone\": \"09123456789\",\n  \"role\": \"cashier\"\n}" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": [
+                "const j = pm.response.json();",
+                "if (j && j.data && j.data.id) pm.environment.set('staff_id', j.data.id);"
+              ] }
+            }
+          ]
+        },
+        {
+          "name": "Show Staff",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/staff/{{staff_id}}", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "staff", "{{staff_id}}"] }
+          }
+        },
+        {
+          "name": "Update Staff",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/staff/{{staff_id}}", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "staff", "{{staff_id}}"] },
+            "body": { "mode": "raw", "raw": "{\n  \"role\": \"manager\"\n}" }
+          }
+        },
+        {
+          "name": "Delete Staff",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/staff/{{staff_id}}", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "staff", "{{staff_id}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tables",
+      "item": [
+        {
+          "name": "List Tables",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/tables", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "tables"] }
+          }
+        },
+        {
+          "name": "Create Table",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/tables", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "tables"] },
+            "body": { "mode": "raw", "raw": "{\n  \"table_number\": \"A1\",\n  \"table_name\": \"Table A1\"\n}" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": [
+                "const j = pm.response.json();",
+                "if (j && j.data && j.data.id) pm.environment.set('table_id', j.data.id);",
+                "if (j && j.data && j.data.qr_token) pm.environment.set('qr_token', j.data.qr_token);"
+              ] }
+            }
+          ]
+        },
+        {
+          "name": "Show Table",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/tables/{{table_id}}", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "tables", "{{table_id}}"] }
+          }
+        },
+        {
+          "name": "Update Table",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/tables/{{table_id}}", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "tables", "{{table_id}}"] },
+            "body": { "mode": "raw", "raw": "{\n  \"table_name\": \"VIP A1\"\n}" }
+          }
+        },
+        {
+          "name": "Delete Table",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/tables/{{table_id}}", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "tables", "{{table_id}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Menu Categories",
+      "item": [
+        {
+          "name": "List Categories",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/menu-categories", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "menu-categories"] }
+          }
+        },
+        {
+          "name": "Create Category",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/menu-categories", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "menu-categories"] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Rice\",\n  \"sort_order\": 1\n}" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": [
+                "const j = pm.response.json();",
+                "if (j && j.data && j.data.id) pm.environment.set('menu_category_id', j.data.id);"
+              ] }
+            }
+          ]
+        },
+        {
+          "name": "Show Category",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/menu-categories/{{menu_category_id}}", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "menu-categories", "{{menu_category_id}}"] }
+          }
+        },
+        {
+          "name": "Update Category",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/menu-categories/{{menu_category_id}}", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "menu-categories", "{{menu_category_id}}"] },
+            "body": { "mode": "raw", "raw": "{\n  \"sort_order\": 2\n}" }
+          }
+        },
+        {
+          "name": "Delete Category",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/menu-categories/{{menu_category_id}}", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "menu-categories", "{{menu_category_id}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Menu Items",
+      "item": [
+        {
+          "name": "List Items",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/t/{{tenant_slug}}/menu-items?category={{menu_category_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "t", "{{tenant_slug}}", "menu-items"],
+              "query": [{ "key": "category", "value": "{{menu_category_id}}" }]
+            }
+          }
+        },
+        {
+          "name": "Create Item",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/menu-items", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "menu-items"] },
+            "body": { "mode": "raw", "raw": "{\n  \"menu_category_id\": \"{{menu_category_id}}\",\n  \"name\": \"Chicken Fried Rice\",\n  \"price\": 8500\n}" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": [
+                "const j = pm.response.json();",
+                "if (j && j.data && j.data.id) pm.environment.set('menu_item_id', j.data.id);"
+              ] }
+            }
+          ]
+        },
+        {
+          "name": "Show Item",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/menu-items/{{menu_item_id}}", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "menu-items", "{{menu_item_id}}"] }
+          }
+        },
+        {
+          "name": "Update Item",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/menu-items/{{menu_item_id}}", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "menu-items", "{{menu_item_id}}"] },
+            "body": { "mode": "raw", "raw": "{\n  \"is_available\": false\n}" }
+          }
+        },
+        {
+          "name": "Delete Item",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/menu-items/{{menu_item_id}}", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "menu-items", "{{menu_item_id}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Menu Collections",
+      "item": [
+        {
+          "name": "List Collections",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/menu-collections", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "menu-collections"] }
+          }
+        },
+        {
+          "name": "Create Collection",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/menu-collections", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "menu-collections"] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Popular Items\",\n  \"layout_type\": \"horizontal_cards\",\n  \"status\": \"active\",\n  \"display_order\": 1\n}" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": [
+                "const j = pm.response.json();",
+                "if (j && j.data && j.data.id) pm.environment.set('menu_collection_id', j.data.id);"
+              ] }
+            }
+          ]
+        },
+        {
+          "name": "Show Collection (with items)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/menu-collections/{{menu_collection_id}}", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "menu-collections", "{{menu_collection_id}}"] }
+          }
+        },
+        {
+          "name": "Update Collection",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/menu-collections/{{menu_collection_id}}", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "menu-collections", "{{menu_collection_id}}"] },
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"inactive\"\n}" }
+          }
+        },
+        {
+          "name": "Delete Collection",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/menu-collections/{{menu_collection_id}}", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "menu-collections", "{{menu_collection_id}}"] }
+          }
+        },
+        {
+          "name": "Attach Item to Collection",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/menu-collections/{{menu_collection_id}}/items", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "menu-collections", "{{menu_collection_id}}", "items"] },
+            "body": { "mode": "raw", "raw": "{\n  \"menu_item_id\": \"{{menu_item_id}}\",\n  \"sort_order\": 1,\n  \"is_featured\": true\n}" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": [
+                "const j = pm.response.json();",
+                "if (j && j.data && j.data.id) pm.environment.set('menu_collection_item_id', j.data.id);"
+              ] }
+            }
+          ]
+        },
+        {
+          "name": "Detach Item from Collection",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/menu-collections/{{menu_collection_id}}/items/{{menu_collection_item_id}}", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "menu-collections", "{{menu_collection_id}}", "items", "{{menu_collection_item_id}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Kitchen",
+      "item": [
+        {
+          "name": "List Kitchen Orders",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/kitchen/orders", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "kitchen", "orders"] }
+          }
+        },
+        {
+          "name": "Update Order Status",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/kitchen/orders/{{order_id}}", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "kitchen", "orders", "{{order_id}}"] },
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"preparing\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cashier",
+      "item": [
+        {
+          "name": "List Unpaid Orders",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/cashier/orders", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "cashier", "orders"] }
+          }
+        },
+        {
+          "name": "Generate Bill (QR)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/cashier/orders/{{order_id}}/bill", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "cashier", "orders", "{{order_id}}", "bill"] },
+            "body": { "mode": "raw", "raw": "{\n  \"method\": \"qr_payment\"\n}" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": [
+                "const j = pm.response.json();",
+                "if (j && j.data && j.data.session && j.data.session.id) pm.environment.set('payment_session_id', j.data.session.id);"
+              ] }
+            }
+          ]
+        },
+        {
+          "name": "Confirm Cash",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/cashier/orders/{{order_id}}/cash", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "cashier", "orders", "{{order_id}}", "cash"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "Dashboard Overview",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/t/{{tenant_slug}}/reports/dashboard", "host": ["{{base_url}}"], "path": ["api", "t", "{{tenant_slug}}", "reports", "dashboard"] }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,164 @@
+{
+  "info": {
+    "name": "Menu QR — Customer Public",
+    "description": "Customer-facing routes resolved by tenant slug + QR token. No auth required for guest flow; optional bearer token for member features.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "View Menu by Table QR",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Accept", "value": "application/json" }],
+        "url": {
+          "raw": "{{base_url}}/api/s/{{tenant_slug}}/table/{{qr_token}}/menu",
+          "host": ["{{base_url}}"],
+          "path": ["api", "s", "{{tenant_slug}}", "table", "{{qr_token}}", "menu"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "const cats = json && json.data && json.data.categories;",
+              "if (cats && cats.length && cats[0].items && cats[0].items.length) {",
+              "  pm.environment.set('menu_item_id', cats[0].items[0].id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create Order (Guest)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/s/{{tenant_slug}}/table/{{qr_token}}/orders",
+          "host": ["{{base_url}}"],
+          "path": ["api", "s", "{{tenant_slug}}", "table", "{{qr_token}}", "orders"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"items\": [\n    { \"menu_item_id\": \"{{menu_item_id}}\", \"quantity\": 2, \"instruction\": \"less oil\" }\n  ]\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "if (json && json.data && json.data.order && json.data.order.id) {",
+              "  pm.environment.set('order_id', json.data.order.id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create Order (Member)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/s/{{tenant_slug}}/table/{{qr_token}}/orders",
+          "host": ["{{base_url}}"],
+          "path": ["api", "s", "{{tenant_slug}}", "table", "{{qr_token}}", "orders"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"customer_id\": \"{{customer_id}}\",\n  \"items\": [\n    { \"menu_item_id\": \"{{menu_item_id}}\", \"quantity\": 2 }\n  ]\n}"
+        }
+      }
+    },
+    {
+      "name": "Apply Points to Order",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/s/{{tenant_slug}}/orders/{{order_id}}/apply-points",
+          "host": ["{{base_url}}"],
+          "path": ["api", "s", "{{tenant_slug}}", "orders", "{{order_id}}", "apply-points"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"customer_id\": \"{{customer_id}}\",\n  \"redeem_points\": 20\n}"
+        }
+      }
+    },
+    {
+      "name": "Create Payment Session (QR)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/s/{{tenant_slug}}/orders/{{order_id}}/payments",
+          "host": ["{{base_url}}"],
+          "path": ["api", "s", "{{tenant_slug}}", "orders", "{{order_id}}", "payments"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"method\": \"qr_payment\",\n  \"shown_on\": \"customer_phone\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "if (json && json.data && json.data.session && json.data.session.id) {",
+              "  pm.environment.set('payment_session_id', json.data.session.id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Confirm Demo Payment",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Accept", "value": "application/json" }],
+        "url": {
+          "raw": "{{base_url}}/api/s/{{tenant_slug}}/payment-sessions/{{payment_session_id}}/confirm-demo",
+          "host": ["{{base_url}}"],
+          "path": ["api", "s", "{{tenant_slug}}", "payment-sessions", "{{payment_session_id}}", "confirm-demo"]
+        }
+      }
+    },
+    {
+      "name": "Get Order Status",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Accept", "value": "application/json" }],
+        "url": {
+          "raw": "{{base_url}}/api/s/{{tenant_slug}}/orders/{{order_id}}/status",
+          "host": ["{{base_url}}"],
+          "path": ["api", "s", "{{tenant_slug}}", "orders", "{{order_id}}", "status"]
+        }
+      }
+    }
+  ]
+}

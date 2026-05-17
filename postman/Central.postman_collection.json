@@ -1,0 +1,95 @@
+{
+  "info": {
+    "name": "Menu QR — Central",
+    "description": "Platform-level routes (no tenant context): register, resolve tenant by slug, tenant-first login.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Register",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "{{base_url}}/api/register", "host": ["{{base_url}}"], "path": ["api", "register"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Ko Aung\",\n  \"email\": \"koaung@example.com\",\n  \"phone\": \"09777788899\",\n  \"password\": \"password\",\n  \"global_role\": \"shop_owner\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "if (json && json.data && json.data.token) {",
+              "  pm.environment.set('central_token', json.data.token);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Resolve Tenant by Slug",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Accept", "value": "application/json" }],
+        "url": {
+          "raw": "{{base_url}}/api/tenants/resolve?slug={{tenant_slug}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "tenants", "resolve"],
+          "query": [{ "key": "slug", "value": "{{tenant_slug}}" }]
+        }
+      }
+    },
+    {
+      "name": "Tenant-First Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/t/{{tenant_slug}}/login",
+          "host": ["{{base_url}}"],
+          "path": ["api", "t", "{{tenant_slug}}", "login"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{owner_email}}\",\n  \"password\": \"{{owner_password}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "if (json && json.data && json.data.token) {",
+              "  pm.environment.set('tenant_token', json.data.token);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get Authed User (Sanctum)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{tenant_token}}" }
+        ],
+        "url": { "raw": "{{base_url}}/api/user", "host": ["{{base_url}}"], "path": ["api", "user"] }
+      }
+    }
+  ]
+}

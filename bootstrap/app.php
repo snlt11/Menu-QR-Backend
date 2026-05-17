@@ -12,7 +12,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->alias([
+            'tenant.slug' => \App\Http\Middleware\IdentifyTenantBySlug::class,
+            'tenant.shop_user' => \App\Http\Middleware\EnsureTenantShopUser::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
