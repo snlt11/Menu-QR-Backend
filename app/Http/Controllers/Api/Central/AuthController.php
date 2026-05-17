@@ -59,7 +59,7 @@ class AuthController extends Controller
         }
 
         $shopUser = $tenant->run(function () use ($user) {
-            return DB::table('shop_users')
+            return DB::table('users')
                 ->where('central_user_id', $user->id)
                 ->where('status', 'active')
                 ->first();

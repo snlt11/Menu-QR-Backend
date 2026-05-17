@@ -13,7 +13,7 @@ class OrderPricingService
      */
     public function calculate(array $items): array
     {
-        $profile = DB::table('shop_profile')->first();
+        $profile = DB::table('profile')->first();
         $serviceRate = $profile ? (float) ($profile->service_charge_rate ?? 0) : 0.0;
         $taxRate = $profile ? (float) ($profile->tax_rate ?? 0) : 0.0;
 

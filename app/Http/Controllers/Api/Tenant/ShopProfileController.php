@@ -11,8 +11,8 @@ class ShopProfileController extends Controller
 {
     public function show(): JsonResponse
     {
-        $profile = DB::table('shop_profile')->first();
-        $settings = DB::table('shop_settings')->first();
+        $profile = DB::table('profile')->first();
+        $settings = DB::table('settings')->first();
 
         return response()->json([
             'status' => 200,
@@ -41,7 +41,7 @@ class ShopProfileController extends Controller
             'status' => ['sometimes', 'string', 'in:active,inactive'],
         ]);
 
-        DB::table('shop_profile')->update($data + ['updated_at' => now()]);
+        DB::table('profile')->update($data + ['updated_at' => now()]);
 
         return $this->show();
     }

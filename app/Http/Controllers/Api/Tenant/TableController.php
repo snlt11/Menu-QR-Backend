@@ -12,7 +12,7 @@ class TableController extends Controller
 {
     public function index(): JsonResponse
     {
-        $rows = DB::table('shop_tables')->orderBy('table_number')->get()
+        $rows = DB::table('tables')->orderBy('table_number')->get()
             ->map(fn ($t) => (array) $t + ['qr_url' => $this->buildQrUrl($t->qr_token)]);
 
         return response()->json(['status' => 200, 'data' => $rows]);
@@ -29,7 +29,7 @@ class TableController extends Controller
         $token = $this->generateUniqueToken();
 
         $id = (string) Str::uuid();
-        DB::table('shop_tables')->insert([
+        DB::table('tables')->insert([
             'id' => $id,
             'table_number' => $data['table_number'],
             'table_name' => $data['table_name'] ?? null,
@@ -39,7 +39,7 @@ class TableController extends Controller
             'updated_at' => now(),
         ]);
 
-        $row = DB::table('shop_tables')->where('id', $id)->first();
+        $row = DB::table('tables')->where('id', $id)->first();
 
         return response()->json([
             'status' => 201,
@@ -49,7 +49,7 @@ class TableController extends Controller
 
     public function show(string $tenant_slug, string $id): JsonResponse
     {
-        $row = DB::table('shop_tables')->where('id', $id)->first();
+        $row = DB::table('tables')->where('id', $id)->first();
         if (! $row) {
             return response()->json(['status' => 404, 'message' => 'Table not found.'], 404);
         }
@@ -62,7 +62,7 @@ class TableController extends Controller
 
     public function update(Request $request, string $tenant_slug, string $id): JsonResponse
     {
-        $row = DB::table('shop_tables')->where('id', $id)->first();
+        $row = DB::table('tables')->where('id', $id)->first();
         if (! $row) {
             return response()->json(['status' => 404, 'message' => 'Table not found.'], 404);
         }
@@ -73,9 +73,9 @@ class TableController extends Controller
             'status' => ['sometimes', 'string', 'in:active,inactive'],
         ]);
 
-        DB::table('shop_tables')->where('id', $id)->update($data + ['updated_at' => now()]);
+        DB::table('tables')->where('id', $id)->update($data + ['updated_at' => now()]);
 
-        $row = DB::table('shop_tables')->where('id', $id)->first();
+        $row = DB::table('tables')->where('id', $id)->first();
 
         return response()->json([
             'status' => 200,
@@ -85,12 +85,12 @@ class TableController extends Controller
 
     public function destroy(string $tenant_slug, string $id): JsonResponse
     {
-        $row = DB::table('shop_tables')->where('id', $id)->first();
+        $row = DB::table('tables')->where('id', $id)->first();
         if (! $row) {
             return response()->json(['status' => 404, 'message' => 'Table not found.'], 404);
         }
 
-        DB::table('shop_tables')->where('id', $id)->delete();
+        DB::table('tables')->where('id', $id)->delete();
 
         return response()->json(['status' => 200, 'data' => ['id' => $id]]);
     }
@@ -99,7 +99,7 @@ class TableController extends Controller
     {
         for ($i = 0; $i < 5; $i++) {
             $token = 'tbl_'.Str::lower(Str::random(10));
-            if (! DB::table('shop_tables')->where('qr_token', $token)->exists()) {
+            if (! DB::table('tables')->where('qr_token', $token)->exists()) {
                 return $token;
             }
         }

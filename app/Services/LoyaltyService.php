@@ -9,7 +9,7 @@ class LoyaltyService
 {
     public function pointDiscountAmount(int $redeemPoints): float
     {
-        $settings = DB::table('shop_settings')->first();
+        $settings = DB::table('settings')->first();
         if (! $settings || ! $settings->points_enabled) {
             return 0.0;
         }
@@ -21,7 +21,7 @@ class LoyaltyService
 
     public function pointsEarnedFor(float $payableAmount): int
     {
-        $settings = DB::table('shop_settings')->first();
+        $settings = DB::table('settings')->first();
         if (! $settings || ! $settings->points_enabled || $settings->earn_rate_amount <= 0) {
             return 0;
         }

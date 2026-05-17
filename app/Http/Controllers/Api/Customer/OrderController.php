@@ -22,12 +22,12 @@ class OrderController extends Controller
             'customer_id' => ['sometimes', 'nullable', 'string'],
         ]);
 
-        $table = DB::table('shop_tables')->where('qr_token', $qr_token)->where('status', 'active')->first();
+        $table = DB::table('tables')->where('qr_token', $qr_token)->where('status', 'active')->first();
         if (! $table) {
             return response()->json(['status' => 404, 'message' => 'Table not found.'], 404);
         }
 
-        $settings = DB::table('shop_settings')->first();
+        $settings = DB::table('settings')->first();
         $isMember = filled($data['customer_id'] ?? null);
         $customerType = $isMember ? 'member' : 'guest';
 

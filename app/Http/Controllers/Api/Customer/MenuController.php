@@ -10,7 +10,7 @@ class MenuController extends Controller
 {
     public function __invoke(string $tenant_slug, string $qr_token): JsonResponse
     {
-        $table = DB::table('shop_tables')
+        $table = DB::table('tables')
             ->where('qr_token', $qr_token)
             ->where('status', 'active')
             ->first();
@@ -19,7 +19,7 @@ class MenuController extends Controller
             return response()->json(['status' => 404, 'message' => 'Table not found.'], 404);
         }
 
-        $profile = DB::table('shop_profile')->first();
+        $profile = DB::table('profile')->first();
 
         $now = now();
         $collections = DB::table('menu_collections')

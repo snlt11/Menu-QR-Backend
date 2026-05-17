@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('shop_settings', function (Blueprint $table) {
+        Schema::create('settings', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('payment_timing')->default('pay_after_meal');
             $table->boolean('allow_guest_order')->default(true);
@@ -26,6 +26,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('shop_settings');
+        Schema::dropIfExists('settings');
     }
 };

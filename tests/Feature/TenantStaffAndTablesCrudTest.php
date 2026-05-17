@@ -39,35 +39,41 @@ function authed($test)
     return $test->withHeader('Authorization', 'Bearer '.test()->token);
 }
 
-test('staff create requires an existing central user', function () {
+test('staff create requires a password', function () {
     authed($this)->postJson('/api/t/shophouse/staff', [
         'name' => 'Random Person',
         'email' => 'noone@example.com',
         'role' => 'cashier',
     ])->assertStatus(422)
-      ->assertJsonPath('message', 'No central user with that email — register them first.');
+      ->assertJsonPath('errors.password.0', 'The password field is required.');
 });
 
-test('staff create succeeds when the central user exists', function () {
-    User::create([
-        'name' => 'Ma Hnin',
-        'email' => 'hnin@example.com',
-        'password' => bcrypt('password'),
-        'global_role' => 'staff',
-    ]);
+test('staff create stays tenant-local and does not touch central users', function () {
+    $centralBefore = User::count();
 
     $res = authed($this)->postJson('/api/t/shophouse/staff', [
         'name' => 'Ma Hnin',
         'email' => 'hnin@example.com',
+        'phone' => '+95 9 123 456 789',
+        'password' => 'staff-pass',
         'role' => 'cashier',
     ])->assertStatus(201);
 
     expect($res['data']['role'])->toBe('cashier');
     expect($res['data']['status'])->toBe('active');
+    expect(array_key_exists('password', $res['data']))->toBeFalse();
 
     authed($this)->getJson('/api/t/shophouse/staff')
         ->assertOk()
         ->assertJsonCount(2, 'data');
+
+    // No new row in central users — staff are tenant-local only.
+    expect(User::count())->toBe($centralBefore);
+
+    // The password lives only in the tenant DB.
+    $hash = $this->tenant->run(fn () => DB::table('users')->where('email', 'hnin@example.com')->value('password'));
+    expect($hash)->toBeString();
+    expect(\Illuminate\Support\Facades\Hash::check('staff-pass', $hash))->toBeTrue();
 });
 
 test('table create auto-generates a qr_token and returns a QR URL', function () {

@@ -24,7 +24,7 @@ class CreateTenantAction
             ]);
 
             $tenant->run(function () use ($owner, $name, $slug) {
-                DB::table('shop_profile')->insert([
+                DB::table('profile')->insert([
                     'id' => (string) Str::uuid(),
                     'name' => $name,
                     'slug' => $slug,
@@ -33,18 +33,19 @@ class CreateTenantAction
                     'updated_at' => now(),
                 ]);
 
-                DB::table('shop_settings')->insert([
+                DB::table('settings')->insert([
                     'id' => (string) Str::uuid(),
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
 
-                DB::table('shop_users')->insert([
+                DB::table('users')->insert([
                     'id' => (string) Str::uuid(),
                     'central_user_id' => $owner->id,
                     'name' => $owner->name,
                     'email' => $owner->email,
                     'phone' => $owner->phone,
+                    'password' => $owner->password,
                     'role' => 'owner',
                     'status' => 'active',
                     'created_at' => now(),

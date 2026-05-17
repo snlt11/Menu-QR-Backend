@@ -38,7 +38,7 @@ beforeEach(function () {
             'created_at' => now(), 'updated_at' => now(),
         ]);
 
-        DB::table('shop_tables')->insert([
+        DB::table('tables')->insert([
             'id' => (string) Str::uuid(),
             'table_number' => 'A1', 'table_name' => 'Table A1',
             'qr_token' => $token, 'status' => 'active',

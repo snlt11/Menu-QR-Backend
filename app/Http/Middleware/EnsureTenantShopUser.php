@@ -16,7 +16,7 @@ class EnsureTenantShopUser
             return response()->json(['status' => 401, 'message' => 'Unauthenticated.'], 401);
         }
 
-        $shopUser = DB::table('shop_users')
+        $shopUser = DB::table('users')
             ->where('central_user_id', $user->id)
             ->where('status', 'active')
             ->first();
