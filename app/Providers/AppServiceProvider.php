@@ -2,23 +2,22 @@
 
 namespace App\Providers;
 
+use App\Models\Tenant;
 use Illuminate\Support\ServiceProvider;
+use Stancl\Tenancy\DatabaseConfig;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
         //
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
-        //
+        DatabaseConfig::generateDatabaseNamesUsing(function (Tenant $tenant) {
+            return $tenant->database_name
+                ?? config('tenancy.database.prefix') . $tenant->slug . config('tenancy.database.suffix');
+        });
     }
 }
