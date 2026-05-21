@@ -91,6 +91,23 @@ class MenuCategoryController extends Controller
         return response()->json(['status' => 200, 'data' => ['id' => $id]]);
     }
 
+    public function reorder(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'order' => ['required', 'array', 'min:1'],
+            'order.*.id' => ['required', 'string', 'exists:menu_categories,id'],
+            'order.*.sort_order' => ['required', 'integer'],
+        ]);
+
+        foreach ($data['order'] as $item) {
+            DB::table('menu_categories')
+                ->where('id', $item['id'])
+                ->update(['sort_order' => $item['sort_order'], 'updated_at' => now()]);
+        }
+
+        return response()->json(['status' => 200, 'data' => $data['order']]);
+    }
+
     private function uniqueSlug(string $base, ?string $ignoreId = null): string
     {
         $slug = $base;
