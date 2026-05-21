@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\Tenant\MenuCategoryController;
 use App\Http\Controllers\Api\Tenant\MenuCollectionController;
 use App\Http\Controllers\Api\Tenant\MenuItemController;
 use App\Http\Controllers\Api\Tenant\ReportController;
+use App\Http\Controllers\Api\Tenant\ShopController;
 use App\Http\Controllers\Api\Tenant\ShopProfileController;
 use App\Http\Controllers\Api\Tenant\StaffController;
 use App\Http\Controllers\Api\Tenant\TableController;
@@ -85,6 +86,7 @@ Route::middleware(['tenant.slug', 'auth:sanctum'])
 Route::middleware(['tenant.slug'])
     ->prefix('s/{tenant_slug}')
     ->group(function () {
+        Route::get('/shop', [ShopController::class, 'show']);
         Route::get('/table/{qr_token}/menu', MenuController::class);
         Route::post('/table/{qr_token}/orders', [OrderController::class, 'store']);
         Route::get('/orders/{order}/status', [OrderController::class, 'status']);
