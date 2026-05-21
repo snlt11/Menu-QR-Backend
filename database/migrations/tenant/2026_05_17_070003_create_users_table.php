@@ -10,7 +10,6 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->uuid('central_user_id')->nullable();
             $table->string('name');
             $table->string('email');
             $table->string('phone')->nullable();
@@ -21,7 +20,6 @@ return new class extends Migration
 
             $table->unique('email');
             $table->index(['role', 'status']);
-            $table->index('central_user_id');
         });
     }
 

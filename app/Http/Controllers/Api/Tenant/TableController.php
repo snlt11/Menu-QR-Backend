@@ -109,6 +109,7 @@ class TableController extends Controller
 
     private function buildQrUrl(string $token): string
     {
-        return rtrim(config('app.url'), '/').'/s/'.tenant('slug').'/table/'.$token;
+        $base = config('app.frontend_url') ?: config('app.url');
+        return rtrim($base, '/').'/s/'.tenant('slug').'/table/'.$token;
     }
 }

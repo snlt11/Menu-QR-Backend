@@ -3,27 +3,34 @@
 namespace App\Actions;
 
 use App\Models\Tenant;
-use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class CreateTenantAction
 {
-    public function execute(User $owner, string $name, ?string $slug = null): Tenant
+    /**
+     * Provision a new shop (tenant) plus its owner row inside the tenant DB.
+     *
+     * Owner credentials live ONLY in the tenant DB. Central stores no shop users.
+     *
+     * @param  array{name: string, email: string, phone?: ?string, password: string}  $owner
+     */
+    public function execute(string $name, string $slug, array $owner): Tenant
     {
-        $slug ??= Str::slug($name);
         $databaseName = config('tenancy.database.prefix') . $slug;
 
-        return DB::transaction(function () use ($owner, $name, $slug, $databaseName) {
+        return DB::transaction(function () use ($name, $slug, $databaseName, $owner) {
             $tenant = Tenant::create([
                 'name' => $name,
                 'slug' => $slug,
                 'database_name' => $databaseName,
-                'owner_user_id' => $owner->id,
+                'owner_name' => $owner['name'],
+                'owner_email' => $owner['email'],
                 'status' => 'active',
             ]);
 
-            $tenant->run(function () use ($owner, $name, $slug) {
+            $tenant->run(function () use ($name, $slug, $owner) {
                 DB::table('profile')->insert([
                     'id' => (string) Str::uuid(),
                     'name' => $name,
@@ -41,27 +48,16 @@ class CreateTenantAction
 
                 DB::table('users')->insert([
                     'id' => (string) Str::uuid(),
-                    'central_user_id' => $owner->id,
-                    'name' => $owner->name,
-                    'email' => $owner->email,
-                    'phone' => $owner->phone,
-                    'password' => $owner->password,
+                    'name' => $owner['name'],
+                    'email' => $owner['email'],
+                    'phone' => $owner['phone'] ?? null,
+                    'password' => Hash::make($owner['password']),
                     'role' => 'owner',
                     'status' => 'active',
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
             });
-
-            DB::table('tenant_user_access')->insert([
-                'id' => (string) Str::uuid(),
-                'tenant_id' => $tenant->id,
-                'user_id' => $owner->id,
-                'role_in_tenant' => 'owner',
-                'status' => 'active',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
 
             return $tenant;
         });

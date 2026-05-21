@@ -44,7 +44,33 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+/**
+ * Provision the demo tenant `shophouse` with an owner row inside the tenant
+ * `users` table. Returns the Tenant model.
+ */
+function makeDemoShop(string $slug = 'shophouse', string $ownerEmail = 'koaung@example.com', string $password = 'password'): \App\Models\Tenant
 {
-    // ..
+    \Illuminate\Support\Facades\DB::statement('DROP DATABASE IF EXISTS `tenant_'.$slug.'`');
+
+    return app(\App\Actions\CreateTenantAction::class)->execute(
+        'Shwe Food House',
+        $slug,
+        [
+            'name' => 'Ko Aung',
+            'email' => $ownerEmail,
+            'phone' => null,
+            'password' => $password,
+        ],
+    );
+}
+
+/**
+ * Log in as the owner and return the bearer token.
+ */
+function ownerLogin($test, string $slug = 'shophouse', string $email = 'koaung@example.com', string $password = 'password'): string
+{
+    return $test
+        ->postJson("/api/t/{$slug}/login", ['email' => $email, 'password' => $password])
+        ->assertOk()
+        ->json('data.token');
 }

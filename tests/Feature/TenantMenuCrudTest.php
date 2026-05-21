@@ -1,28 +1,8 @@
 <?php
 
-use App\Actions\CreateTenantAction;
-use App\Models\User;
-use Illuminate\Support\Facades\DB;
-
 beforeEach(function () {
-    DB::statement('DROP DATABASE IF EXISTS `tenant_shophouse`');
-
-    $this->owner = User::create([
-        'name' => 'Ko Aung',
-        'email' => 'koaung@example.com',
-        'password' => bcrypt('password'),
-        'global_role' => 'shop_owner',
-    ]);
-
-    $this->tenant = app(CreateTenantAction::class)
-        ->execute($this->owner, 'Shwe Food House', 'shophouse');
-
-    $login = $this->postJson('/api/t/shophouse/login', [
-        'email' => 'koaung@example.com',
-        'password' => 'password',
-    ])->assertOk();
-
-    $this->token = $login['data']['token'];
+    $this->tenant = makeDemoShop();
+    $this->token = ownerLogin($this);
 });
 
 afterEach(function () {
@@ -40,7 +20,6 @@ function authedMenu($test)
 }
 
 test('full menu flow: create category, item, collection, attach, list, detach', function () {
-    // 1. Category
     $cat = authedMenu($this)->postJson('/api/t/shophouse/menu-categories', [
         'name' => 'Rice',
         'sort_order' => 1,
@@ -48,7 +27,6 @@ test('full menu flow: create category, item, collection, attach, list, detach', 
     $categoryId = $cat['data']['id'];
     expect($cat['data']['slug'])->toBe('rice');
 
-    // 2. Item under that category
     $item = authedMenu($this)->postJson('/api/t/shophouse/menu-items', [
         'menu_category_id' => $categoryId,
         'name' => 'Chicken Fried Rice',
@@ -58,7 +36,6 @@ test('full menu flow: create category, item, collection, attach, list, detach', 
     expect((float) $item['data']['price'])->toBe(8500.0);
     expect($item['data']['slug'])->toBe('chicken-fried-rice');
 
-    // 3. Collection
     $collection = authedMenu($this)->postJson('/api/t/shophouse/menu-collections', [
         'name' => 'Popular Items',
         'layout_type' => 'horizontal_cards',
@@ -67,7 +44,6 @@ test('full menu flow: create category, item, collection, attach, list, detach', 
     ])->assertStatus(201);
     $collectionId = $collection['data']['id'];
 
-    // 4. Attach item to collection
     $pivot = authedMenu($this)->postJson("/api/t/shophouse/menu-collections/{$collectionId}/items", [
         'menu_item_id' => $itemId,
         'sort_order' => 1,
@@ -75,18 +51,15 @@ test('full menu flow: create category, item, collection, attach, list, detach', 
     ])->assertStatus(201);
     $pivotId = $pivot['data']['id'];
 
-    // 5. Attempting to attach the same item again → 409
     authedMenu($this)->postJson("/api/t/shophouse/menu-collections/{$collectionId}/items", [
         'menu_item_id' => $itemId,
     ])->assertStatus(409);
 
-    // 6. Show collection includes joined items
     authedMenu($this)->getJson("/api/t/shophouse/menu-collections/{$collectionId}")
         ->assertOk()
         ->assertJsonPath('data.collection.name', 'Popular Items')
         ->assertJsonPath('data.items.0.menu_item_name', 'Chicken Fried Rice');
 
-    // 7. Detach
     authedMenu($this)->deleteJson("/api/t/shophouse/menu-collections/{$collectionId}/items/{$pivotId}")
         ->assertOk();
 

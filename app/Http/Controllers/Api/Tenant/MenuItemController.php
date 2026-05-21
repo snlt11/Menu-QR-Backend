@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api\Tenant;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class MenuItemController extends Controller
@@ -14,6 +16,7 @@ class MenuItemController extends Controller
     {
         $rows = DB::table('menu_items')
             ->when($request->filled('category'), fn ($q) => $q->where('menu_category_id', $request->string('category')))
+            ->orderByDesc('created_at')
             ->orderBy('name')
             ->get();
 
@@ -29,11 +32,17 @@ class MenuItemController extends Controller
             'price' => ['required', 'numeric', 'min:0'],
             'currency' => ['sometimes', 'string', 'max:8'],
             'image_url' => ['sometimes', 'nullable', 'url'],
+            'image' => ['sometimes', 'nullable', 'image', 'max:5120'],
             'is_available' => ['sometimes', 'boolean'],
             'status' => ['sometimes', 'string', 'in:active,inactive'],
         ]);
 
         $slug = $this->uniqueSlug($data['menu_category_id'], Str::slug($data['name']));
+
+        $imageUrl = $data['image_url'] ?? null;
+        if ($request->hasFile('image')) {
+            $imageUrl = $this->uploadImage($request->file('image'), $slug);
+        }
 
         $id = (string) Str::uuid();
         DB::table('menu_items')->insert([
@@ -44,7 +53,7 @@ class MenuItemController extends Controller
             'description' => $data['description'] ?? null,
             'price' => $data['price'],
             'currency' => $data['currency'] ?? 'MMK',
-            'image_url' => $data['image_url'] ?? null,
+            'image_url' => $imageUrl,
             'is_available' => $data['is_available'] ?? true,
             'status' => $data['status'] ?? 'active',
             'created_at' => now(),
@@ -81,6 +90,7 @@ class MenuItemController extends Controller
             'price' => ['sometimes', 'numeric', 'min:0'],
             'currency' => ['sometimes', 'string', 'max:8'],
             'image_url' => ['sometimes', 'nullable', 'url'],
+            'image' => ['sometimes', 'nullable', 'image', 'max:5120'],
             'is_available' => ['sometimes', 'boolean'],
             'status' => ['sometimes', 'string', 'in:active,inactive'],
         ]);
@@ -89,6 +99,14 @@ class MenuItemController extends Controller
             $categoryId = $data['menu_category_id'] ?? $row->menu_category_id;
             $data['slug'] = $this->uniqueSlug($categoryId, Str::slug($data['name']), $id);
         }
+
+        if ($request->hasFile('image')) {
+            $slugForFile = $data['slug'] ?? $row->slug;
+            $data['image_url'] = $this->uploadImage($request->file('image'), $slugForFile);
+        }
+
+        // The `image` field is a file upload, not a DB column — strip it before update.
+        unset($data['image']);
 
         DB::table('menu_items')->where('id', $id)->update($data + ['updated_at' => now()]);
 
@@ -108,6 +126,22 @@ class MenuItemController extends Controller
         DB::table('menu_items')->where('id', $id)->delete();
 
         return response()->json(['status' => 200, 'data' => ['id' => $id]]);
+    }
+
+    /**
+     * Store an uploaded image on the s3 disk (MinIO in dev) and return the public URL.
+     */
+    private function uploadImage(UploadedFile $file, string $slug): string
+    {
+        $ext = strtolower($file->getClientOriginalExtension() ?: 'jpg');
+        $path = 'menu-items/'.tenant('slug').'/'.$slug.'-'.Str::lower(Str::random(8)).'.'.$ext;
+
+        Storage::disk('s3')->put($path, file_get_contents($file->getRealPath()), [
+            'visibility' => 'public',
+            'ContentType' => $file->getMimeType() ?: 'image/jpeg',
+        ]);
+
+        return Storage::disk('s3')->url($path);
     }
 
     private function uniqueSlug(string $categoryId, string $base, ?string $ignoreId = null): string

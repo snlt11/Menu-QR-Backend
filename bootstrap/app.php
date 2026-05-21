@@ -14,7 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'tenant.slug' => \App\Http\Middleware\IdentifyTenantBySlug::class,
-            'tenant.shop_user' => \App\Http\Middleware\EnsureTenantShopUser::class,
+            'admin' => \App\Http\Middleware\EnsureAdmin::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

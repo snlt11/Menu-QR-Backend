@@ -1,28 +1,11 @@
 <?php
 
-use App\Actions\CreateTenantAction;
-use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 beforeEach(function () {
-    DB::statement('DROP DATABASE IF EXISTS `tenant_shophouse`');
-
-    $this->owner = User::create([
-        'name' => 'Ko Aung',
-        'email' => 'koaung@example.com',
-        'password' => bcrypt('password'),
-        'global_role' => 'shop_owner',
-    ]);
-
-    $this->tenant = app(CreateTenantAction::class)
-        ->execute($this->owner, 'Shwe Food House', 'shophouse');
-
-    $login = $this->postJson('/api/t/shophouse/login', [
-        'email' => 'koaung@example.com',
-        'password' => 'password',
-    ])->assertOk();
-
-    $this->token = $login['data']['token'];
+    $this->tenant = makeDemoShop();
+    $this->token = ownerLogin($this);
 });
 
 afterEach(function () {
@@ -48,8 +31,8 @@ test('staff create requires a password', function () {
       ->assertJsonPath('errors.password.0', 'The password field is required.');
 });
 
-test('staff create stays tenant-local and does not touch central users', function () {
-    $centralBefore = User::count();
+test('staff create writes only to tenant.users with a bcrypt password', function () {
+    $centralBefore = DB::table('users')->count();
 
     $res = authed($this)->postJson('/api/t/shophouse/staff', [
         'name' => 'Ma Hnin',
@@ -65,15 +48,13 @@ test('staff create stays tenant-local and does not touch central users', functio
 
     authed($this)->getJson('/api/t/shophouse/staff')
         ->assertOk()
-        ->assertJsonCount(2, 'data');
+        ->assertJsonCount(2, 'data'); // owner + new cashier
 
-    // No new row in central users — staff are tenant-local only.
-    expect(User::count())->toBe($centralBefore);
+    // No row written to central.users.
+    expect(DB::table('users')->count())->toBe($centralBefore);
 
-    // The password lives only in the tenant DB.
     $hash = $this->tenant->run(fn () => DB::table('users')->where('email', 'hnin@example.com')->value('password'));
-    expect($hash)->toBeString();
-    expect(\Illuminate\Support\Facades\Hash::check('staff-pass', $hash))->toBeTrue();
+    expect(Hash::check('staff-pass', $hash))->toBeTrue();
 });
 
 test('table create auto-generates a qr_token and returns a QR URL', function () {

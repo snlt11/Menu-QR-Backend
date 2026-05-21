@@ -1,28 +1,16 @@
 <?php
 
-use App\Actions\CreateTenantAction;
-use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 beforeEach(function () {
-    DB::statement('DROP DATABASE IF EXISTS `tenant_shophouse`');
+    $this->tenant = makeDemoShop();
 
-    $this->owner = User::create([
-        'name' => 'Ko Aung',
-        'email' => 'koaung@example.com',
-        'password' => bcrypt('password'),
-        'global_role' => 'shop_owner',
-    ]);
-
-    $this->tenant = app(CreateTenantAction::class)
-        ->execute($this->owner, 'Shwe Food House', 'shophouse');
-
-    $this->menuItemId = null;
     $this->qrToken = 'tbl_test_'.Str::random(6);
+    $this->menuItemId = null;
 
     $token = $this->qrToken;
-    $this->tenant->run(function () use ($token, &$menuItemId) {
+    $this->tenant->run(function () use ($token, &$itemId) {
         $catId = (string) Str::uuid();
         DB::table('menu_categories')->insert([
             'id' => $catId, 'name' => 'Rice', 'slug' => 'rice', 'sort_order' => 1, 'status' => 'active',
@@ -44,14 +32,11 @@ beforeEach(function () {
             'qr_token' => $token, 'status' => 'active',
             'created_at' => now(), 'updated_at' => now(),
         ]);
-
-        $menuItemId = $itemId;
     });
 
-    // Re-read the menu item id from the tenant DB after running the seed callback.
-    $this->menuItemId = $this->tenant->run(function () {
-        return DB::table('menu_items')->where('slug', 'chicken-fried-rice')->value('id');
-    });
+    $this->menuItemId = $this->tenant->run(
+        fn () => DB::table('menu_items')->where('slug', 'chicken-fried-rice')->value('id'),
+    );
 });
 
 afterEach(function () {
@@ -72,7 +57,6 @@ test('guest can view the menu by QR token', function () {
 });
 
 test('guest can create an order with snapshot prices and then pay via demo QR', function () {
-    // 1. Create order
     $createRes = $this->postJson("/api/s/shophouse/table/{$this->qrToken}/orders", [
         'items' => [
             ['menu_item_id' => $this->menuItemId, 'quantity' => 2, 'instruction' => 'less oil'],
@@ -85,7 +69,6 @@ test('guest can create an order with snapshot prices and then pay via demo QR', 
     expect($createRes['data']['order']['payment_status'])->toBe('unpaid');
     expect($createRes['data']['items'][0]['snapshot_name'])->toBe('Chicken Fried Rice');
 
-    // 2. Start payment session
     $payRes = $this->postJson("/api/s/shophouse/orders/{$orderId}/payments", [
         'method' => 'qr_payment',
         'shown_on' => 'customer_phone',
@@ -94,13 +77,11 @@ test('guest can create an order with snapshot prices and then pay via demo QR', 
     $sessionId = $payRes['data']['session']['id'];
     expect($payRes['data']['session']['qr_payload'])->toContain('PAY|ORDER=');
 
-    // 3. Confirm demo payment
     $this->postJson("/api/s/shophouse/payment-sessions/{$sessionId}/confirm-demo")
         ->assertOk()
         ->assertJsonPath('data.payment_status', 'paid')
         ->assertJsonPath('data.status', 'completed');
 
-    // 4. Status endpoint reflects paid + completed
     $this->getJson("/api/s/shophouse/orders/{$orderId}/status")
         ->assertOk()
         ->assertJsonPath('data.order.payment_status', 'paid')

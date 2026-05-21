@@ -48,6 +48,7 @@ return [
                 'description' => 'Burmese-style fried rice with chicken, egg, scallions, and a touch of soy.',
                 'price' => 8500,
                 'wiki_article' => 'Fried rice',
+                'is_available' => false,
             ],
             [
                 'slug' => 'coconut-rice-chicken-curry',
@@ -196,6 +197,7 @@ return [
                 'description' => 'Cool dessert of coconut milk, sago, agar jelly and sticky rice.',
                 'price' => 4500,
                 'wiki_article' => 'Shwe yin aye',
+                'is_available' => false,
             ],
             [
                 'slug' => 'mont-lone-yay-paw',
@@ -219,6 +221,7 @@ return [
                 'layout_type' => 'large_featured_cards',
                 'display_order' => 2,
                 'status' => 'active',
+                'time_window' => 'today',
                 'items' => ['ohn-no-khao-swe', 'coconut-rice-chicken-curry'],
             ],
             [
@@ -227,6 +230,57 @@ return [
                 'display_order' => 3,
                 'status' => 'active',
                 'items' => ['nan-gyi-thoke', 'lahpet-thoke', 'shwe-yin-aye'],
+            ],
+        ],
+        'customers' => [
+            ['name' => 'Mg Mg', 'email' => 'mgmg@example.com', 'phone' => '09987654321', 'points' => 50],
+            ['name' => 'Daw Aye', 'email' => 'aye@example.com', 'phone' => '09111222333', 'points' => 120],
+            ['name' => 'Ko Zaw', 'email' => 'zaw@example.com', 'phone' => '09444555666', 'points' => 15],
+        ],
+        'orders' => [
+            // Completed + paid (today) — feeds today's sales + popular items + earned points.
+            [
+                'table' => 'A1', 'customer' => 'mgmg@example.com', 'minutes_ago' => 120,
+                'status' => 'completed', 'payment_status' => 'paid',
+                'items' => [['mohinga', 2], ['burmese-milk-tea', 2]],
+            ],
+            [
+                'table' => 'A2', 'customer' => 'aye@example.com', 'minutes_ago' => 95,
+                'status' => 'completed', 'payment_status' => 'paid',
+                'redeemed_points' => 10,
+                'items' => [['shan-noodle', 1], ['nan-gyi-thoke', 1], ['lahpet-thoke', 1]],
+            ],
+            [
+                'table' => 'B1', 'customer' => null, 'minutes_ago' => 75,
+                'status' => 'completed', 'payment_status' => 'paid',
+                'items' => [['mohinga', 1], ['lemongrass-cooler', 1]],
+            ],
+            [
+                'table' => 'B2', 'customer' => null, 'minutes_ago' => 60,
+                'status' => 'completed', 'payment_status' => 'paid',
+                'items' => [['ohn-no-khao-swe', 2]],
+            ],
+            // Served / checkout requested — shows up on cashier as unpaid.
+            [
+                'table' => 'A3', 'customer' => 'zaw@example.com', 'minutes_ago' => 40,
+                'status' => 'checkout_requested', 'payment_status' => 'unpaid',
+                'items' => [['coconut-rice-chicken-curry', 1], ['burmese-milk-tea', 1]],
+            ],
+            [
+                'table' => 'VIP1', 'customer' => null, 'minutes_ago' => 35,
+                'status' => 'served', 'payment_status' => 'unpaid',
+                'items' => [['pork-curry-rice', 2], ['sugarcane-juice', 2]],
+            ],
+            // Kitchen queue — shows up on kitchen page.
+            [
+                'table' => 'B1', 'customer' => null, 'minutes_ago' => 18,
+                'status' => 'preparing', 'payment_status' => 'unpaid',
+                'items' => [['mohinga', 2], ['samusa-thoke', 1]],
+            ],
+            [
+                'table' => 'A1', 'customer' => null, 'minutes_ago' => 7,
+                'status' => 'submitted', 'payment_status' => 'unpaid',
+                'items' => [['nan-gyi-thoke', 1], ['mont-lone-yay-paw', 2]],
             ],
         ],
     ],
@@ -305,6 +359,7 @@ return [
                 'description' => 'Stir-fried rice noodles with shrimp, egg, tofu, peanut, and tamarind sauce.',
                 'price' => 180,
                 'wiki_article' => 'Pad thai',
+                'is_available' => false,
             ],
             [
                 'slug' => 'pad-see-ew',
@@ -443,6 +498,7 @@ return [
                 'description' => 'Sweet coconut sticky rice with ripe mango slices.',
                 'price' => 150,
                 'wiki_article' => 'Mango sticky rice',
+                'is_available' => false,
             ],
             [
                 'slug' => 'tub-tim-krob',
@@ -466,6 +522,7 @@ return [
                 'layout_type' => 'large_featured_cards',
                 'display_order' => 2,
                 'status' => 'active',
+                'time_window' => 'today',
                 'items' => ['massaman-beef', 'khao-soi-gai'],
             ],
             [
@@ -474,6 +531,57 @@ return [
                 'display_order' => 3,
                 'status' => 'active',
                 'items' => ['panang-neua', 'larb-moo', 'mango-sticky-rice', 'pad-krapow-moo'],
+            ],
+        ],
+        'customers' => [
+            ['name' => 'Nattaya Phromma', 'email' => 'nattaya@example.com', 'phone' => '+66 81 234 5678', 'points' => 85],
+            ['name' => 'Anan Kittisak', 'email' => 'anan@example.com', 'phone' => '+66 82 345 6789', 'points' => 30],
+            ['name' => 'Lalita Wong', 'email' => 'lalita@example.com', 'phone' => '+66 83 456 7890', 'points' => 200],
+        ],
+        'orders' => [
+            // Completed + paid today
+            [
+                'table' => 'T1', 'customer' => 'nattaya@example.com', 'minutes_ago' => 140,
+                'status' => 'completed', 'payment_status' => 'paid',
+                'items' => [['tom-yum-goong', 1], ['pad-thai', 1], ['thai-iced-tea', 2]],
+            ],
+            [
+                'table' => 'T2', 'customer' => 'lalita@example.com', 'minutes_ago' => 110,
+                'status' => 'completed', 'payment_status' => 'paid',
+                'redeemed_points' => 20,
+                'items' => [['green-curry', 1], ['som-tum', 1], ['mango-sticky-rice', 1]],
+            ],
+            [
+                'table' => 'T3', 'customer' => null, 'minutes_ago' => 80,
+                'status' => 'completed', 'payment_status' => 'paid',
+                'items' => [['pad-krapow-moo', 2], ['coconut-water', 2]],
+            ],
+            [
+                'table' => 'T4', 'customer' => 'anan@example.com', 'minutes_ago' => 65,
+                'status' => 'completed', 'payment_status' => 'paid',
+                'items' => [['khao-soi-gai', 1], ['lemongrass-tea', 1]],
+            ],
+            // Served / checkout requested — cashier sees these as unpaid bills
+            [
+                'table' => 'T5', 'customer' => null, 'minutes_ago' => 45,
+                'status' => 'checkout_requested', 'payment_status' => 'unpaid',
+                'items' => [['massaman-beef', 1], ['khao-pad-sapparod', 1]],
+            ],
+            [
+                'table' => 'VIP1', 'customer' => 'lalita@example.com', 'minutes_ago' => 30,
+                'status' => 'served', 'payment_status' => 'unpaid',
+                'items' => [['panang-neua', 2], ['tom-kha-gai', 1], ['mango-sticky-rice', 2]],
+            ],
+            // Kitchen queue
+            [
+                'table' => 'T1', 'customer' => null, 'minutes_ago' => 12,
+                'status' => 'preparing', 'payment_status' => 'unpaid',
+                'items' => [['pad-see-ew', 2], ['por-pia-tod', 1]],
+            ],
+            [
+                'table' => 'T2', 'customer' => null, 'minutes_ago' => 4,
+                'status' => 'submitted', 'payment_status' => 'unpaid',
+                'items' => [['boat-noodles', 2], ['kanom-jeeb', 1]],
             ],
         ],
     ],

@@ -10,10 +10,10 @@ return new class extends Migration
     {
         Schema::create('customers', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->uuid('central_user_id')->nullable()->unique();
             $table->string('name');
+            $table->string('email')->nullable()->unique();
             $table->string('phone')->nullable();
-            $table->string('email')->nullable();
+            $table->string('password')->nullable();
             $table->string('status')->default('active');
             $table->timestamps();
         });
@@ -21,7 +21,6 @@ return new class extends Migration
         Schema::create('customer_profiles', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('customer_id')->unique()->constrained('customers')->cascadeOnDelete();
-            $table->uuid('central_user_id')->nullable();
             $table->string('name');
             $table->string('phone')->nullable();
             $table->string('email')->nullable();

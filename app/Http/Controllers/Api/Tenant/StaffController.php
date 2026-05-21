@@ -15,7 +15,7 @@ class StaffController extends Controller
     public function index(): JsonResponse
     {
         $rows = DB::table('users')
-            ->select('id', 'central_user_id', 'name', 'email', 'phone', 'role', 'status', 'created_at', 'updated_at')
+            ->select('id', 'name', 'email', 'phone', 'role', 'status', 'created_at', 'updated_at')
             ->orderBy('created_at')
             ->get();
 
@@ -36,7 +36,6 @@ class StaffController extends Controller
         $id = (string) Str::uuid();
         DB::table('users')->insert([
             'id' => $id,
-            'central_user_id' => null,
             'name' => $data['name'],
             'email' => $data['email'],
             'phone' => $data['phone'] ?? null,
@@ -50,7 +49,7 @@ class StaffController extends Controller
         return response()->json([
             'status' => 201,
             'data' => DB::table('users')
-                ->select('id', 'central_user_id', 'name', 'email', 'phone', 'role', 'status', 'created_at', 'updated_at')
+                ->select('id', 'name', 'email', 'phone', 'role', 'status', 'created_at', 'updated_at')
                 ->where('id', $id)
                 ->first(),
         ], 201);

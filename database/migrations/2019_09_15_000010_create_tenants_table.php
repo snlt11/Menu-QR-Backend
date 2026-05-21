@@ -12,10 +12,11 @@ return new class extends Migration
     {
         Schema::create('tenants', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignUuid('owner_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->string('name');
             $table->string('slug')->unique();
             $table->string('database_name')->unique();
+            $table->string('owner_name')->nullable();
+            $table->string('owner_email')->nullable();
             $table->string('status')->default('active');
             $table->timestamps();
             $table->json('data')->nullable();

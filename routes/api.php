@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\AdminAuthController;
+use App\Http\Controllers\Api\Admin\AdminTenantController;
 use App\Http\Controllers\Api\Central\AuthController;
 use App\Http\Controllers\Api\Central\TenantResolveController;
 use App\Http\Controllers\Api\Customer\MenuController;
@@ -19,54 +21,54 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| Central API
+| Central / public — tenant resolve + tenant login
+| (shop signup is admin-only — see admin routes below)
 |--------------------------------------------------------------------------
 */
-Route::post('/register', [AuthController::class, 'register']);
 Route::get('/tenants/resolve', TenantResolveController::class);
 Route::post('/t/{tenant_slug}/login', [AuthController::class, 'login']);
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+/*
+|--------------------------------------------------------------------------
+| Platform admin — login + tenant CRUD
+|--------------------------------------------------------------------------
+*/
+Route::post('/admin/login', [AdminAuthController::class, 'login']);
+
+Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
+    Route::get('/me', [AdminAuthController::class, 'me']);
+    Route::post('/logout', [AdminAuthController::class, 'logout']);
+    Route::apiResource('tenants', AdminTenantController::class)->parameters(['tenants' => 'id']);
 });
 
 /*
 |--------------------------------------------------------------------------
-| Tenant staff (authed shop_user in tenant DB context)
+| Tenant staff — authed tenant.users; tenant context initialized FIRST
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:sanctum', 'tenant.slug', 'tenant.shop_user'])
+Route::middleware(['tenant.slug', 'auth:sanctum'])
     ->prefix('t/{tenant_slug}')
     ->group(function () {
-        // Shop profile / settings
+        Route::get('/me', function (Request $request) {
+            return ['status' => 200, 'data' => $request->user()];
+        });
+
         Route::get('/shop-profile', [ShopProfileController::class, 'show']);
         Route::put('/shop-profile', [ShopProfileController::class, 'update']);
 
-        // Kitchen
         Route::get('/kitchen/orders', [KitchenController::class, 'index']);
         Route::patch('/kitchen/orders/{order}', [KitchenController::class, 'updateStatus']);
 
-        // Cashier
         Route::get('/cashier/orders', [CashierController::class, 'unpaid']);
         Route::post('/cashier/orders/{order}/bill', [CashierController::class, 'generateBill']);
         Route::post('/cashier/orders/{order}/cash', [CashierController::class, 'confirmCash']);
 
-        // Reports
         Route::get('/reports/dashboard', [ReportController::class, 'dashboard']);
 
-        // Staff
         Route::apiResource('staff', StaffController::class)->parameters(['staff' => 'id']);
-
-        // Tables (+ qr_token auto-generated on create)
         Route::apiResource('tables', TableController::class)->parameters(['tables' => 'id']);
-
-        // Menu categories
         Route::apiResource('menu-categories', MenuCategoryController::class)->parameters(['menu-categories' => 'id']);
-
-        // Menu items
         Route::apiResource('menu-items', MenuItemController::class)->parameters(['menu-items' => 'id']);
-
-        // Menu collections + pivot
         Route::apiResource('menu-collections', MenuCollectionController::class)->parameters(['menu-collections' => 'id']);
         Route::post('/menu-collections/{id}/items', [MenuCollectionController::class, 'attachItem']);
         Route::delete('/menu-collections/{id}/items/{itemId}', [MenuCollectionController::class, 'detachItem']);
@@ -74,7 +76,7 @@ Route::middleware(['auth:sanctum', 'tenant.slug', 'tenant.shop_user'])
 
 /*
 |--------------------------------------------------------------------------
-| Customer public area (no auth required; tenant resolved by slug)
+| Customer public — no auth required; tenant resolved by slug
 |--------------------------------------------------------------------------
 */
 Route::middleware(['tenant.slug'])
