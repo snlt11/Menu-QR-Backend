@@ -73,6 +73,7 @@ class MenuCollectionController extends Controller
                 'mi.currency as menu_item_currency',
                 'mi.status as menu_item_status',
                 'mi.is_available as menu_item_is_available',
+                'mi.image_url as menu_item_image_url',
             )
             ->get();
 
@@ -194,6 +195,24 @@ class MenuCollectionController extends Controller
         DB::table('menu_collection_items')->where('id', $itemId)->delete();
 
         return response()->json(['status' => 200, 'data' => ['id' => $itemId]]);
+    }
+
+    public function reorderItems(Request $request, string $tenant_slug, string $id): JsonResponse
+    {
+        $data = $request->validate([
+            'order' => ['required', 'array', 'min:1'],
+            'order.*.id' => ['required', 'string', 'exists:menu_collection_items,id'],
+            'order.*.sort_order' => ['required', 'integer'],
+        ]);
+
+        foreach ($data['order'] as $item) {
+            DB::table('menu_collection_items')
+                ->where('id', $item['id'])
+                ->where('menu_collection_id', $id)
+                ->update(['sort_order' => $item['sort_order'], 'updated_at' => now()]);
+        }
+
+        return response()->json(['status' => 200, 'data' => $data['order']]);
     }
 
     private function uniqueSlug(string $base, ?string $ignoreId = null): string

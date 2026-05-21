@@ -72,6 +72,7 @@ Route::middleware(['tenant.slug', 'auth:sanctum'])
         Route::post('/menu-collections/reorder', [MenuCollectionController::class, 'reorder']);
         Route::apiResource('menu-collections', MenuCollectionController::class)->parameters(['menu-collections' => 'id']);
         Route::post('/menu-collections/{id}/items', [MenuCollectionController::class, 'attachItem']);
+        Route::post('/menu-collections/{id}/items/reorder', [MenuCollectionController::class, 'reorderItems']);
         Route::delete('/menu-collections/{id}/items/{itemId}', [MenuCollectionController::class, 'detachItem']);
     });
 
