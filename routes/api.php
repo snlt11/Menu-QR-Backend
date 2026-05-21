@@ -69,6 +69,7 @@ Route::middleware(['tenant.slug', 'auth:sanctum'])
         Route::apiResource('tables', TableController::class)->parameters(['tables' => 'id']);
         Route::apiResource('menu-categories', MenuCategoryController::class)->parameters(['menu-categories' => 'id']);
         Route::apiResource('menu-items', MenuItemController::class)->parameters(['menu-items' => 'id']);
+        Route::post('/menu-collections/reorder', [MenuCollectionController::class, 'reorder']);
         Route::apiResource('menu-collections', MenuCollectionController::class)->parameters(['menu-collections' => 'id']);
         Route::post('/menu-collections/{id}/items', [MenuCollectionController::class, 'attachItem']);
         Route::delete('/menu-collections/{id}/items/{itemId}', [MenuCollectionController::class, 'detachItem']);

@@ -126,6 +126,23 @@ class MenuCollectionController extends Controller
         return response()->json(['status' => 200, 'data' => ['id' => $id]]);
     }
 
+    public function reorder(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'order' => ['required', 'array', 'min:1'],
+            'order.*.id' => ['required', 'string', 'exists:menu_collections,id'],
+            'order.*.display_order' => ['required', 'integer'],
+        ]);
+
+        foreach ($data['order'] as $item) {
+            DB::table('menu_collections')
+                ->where('id', $item['id'])
+                ->update(['display_order' => $item['display_order'], 'updated_at' => now()]);
+        }
+
+        return response()->json(['status' => 200, 'data' => $data['order']]);
+    }
+
     public function attachItem(Request $request, string $tenant_slug, string $id): JsonResponse
     {
         $collection = DB::table('menu_collections')->where('id', $id)->first();
