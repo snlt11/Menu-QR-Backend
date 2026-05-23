@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\Tenant\ShopController;
 use App\Http\Controllers\Api\Tenant\ShopProfileController;
 use App\Http\Controllers\Api\Tenant\StaffController;
 use App\Http\Controllers\Api\Tenant\TableController;
+use App\Http\Controllers\Api\Tenant\TenantCustomerController;
 use App\Http\Controllers\Api\Tenant\TenantOrderController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -77,6 +78,9 @@ Route::middleware(['tenant.slug', 'auth:sanctum'])
         Route::get('/orders', [TenantOrderController::class, 'index']);
         Route::get('/orders/{order}', [TenantOrderController::class, 'show']);
         Route::post('/orders/{order}/mark-paid', [TenantOrderController::class, 'markPaid']);
+
+        Route::get('/customers', [TenantCustomerController::class, 'index']);
+        Route::get('/customers/{customer}', [TenantCustomerController::class, 'show']);
 
         Route::apiResource('staff', StaffController::class)->parameters(['staff' => 'id']);
         Route::apiResource('tables', TableController::class)->parameters(['tables' => 'id']);
