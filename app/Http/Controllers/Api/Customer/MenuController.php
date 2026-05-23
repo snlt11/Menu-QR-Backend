@@ -21,11 +21,8 @@ class MenuController extends Controller
 
         $profile = DB::table('profile')->first();
 
-        $now = now();
         $collections = DB::table('menu_collections')
             ->where('status', 'active')
-            ->where(fn ($q) => $q->whereNull('starts_at')->orWhere('starts_at', '<=', $now))
-            ->where(fn ($q) => $q->whereNull('ends_at')->orWhere('ends_at', '>=', $now))
             ->orderBy('display_order')
             ->get();
 
