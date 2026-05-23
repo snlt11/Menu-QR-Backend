@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\Admin\AdminAuthController;
 use App\Http\Controllers\Api\Admin\AdminTenantController;
 use App\Http\Controllers\Api\Central\AuthController;
 use App\Http\Controllers\Api\Central\TenantResolveController;
+use App\Http\Controllers\Api\Customer\CustomerAuthController;
 use App\Http\Controllers\Api\Customer\MenuController;
 use App\Http\Controllers\Api\Customer\OrderController;
 use App\Http\Controllers\Api\Customer\PaymentController;
@@ -88,9 +89,26 @@ Route::middleware(['tenant.slug'])
     ->group(function () {
         Route::get('/shop', [ShopController::class, 'show']);
         Route::get('/table/{qr_token}/menu', MenuController::class);
+
+        Route::post('/auth/register', [CustomerAuthController::class, 'register']);
+        Route::post('/auth/login', [CustomerAuthController::class, 'login']);
+
         Route::post('/table/{qr_token}/orders', [OrderController::class, 'store']);
+        Route::patch('/orders/{order}/items', [OrderController::class, 'updateItems']);
         Route::get('/orders/{order}/status', [OrderController::class, 'status']);
         Route::post('/orders/{order}/apply-points', [OrderController::class, 'applyPoints']);
         Route::post('/orders/{order}/payments', [PaymentController::class, 'createSession']);
         Route::post('/payment-sessions/{session}/confirm-demo', [PaymentController::class, 'confirmDemo']);
+    });
+
+/*
+|--------------------------------------------------------------------------
+| Customer authenticated — Sanctum; tenant resolved by slug
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['tenant.slug', 'auth:sanctum'])
+    ->prefix('s/{tenant_slug}')
+    ->group(function () {
+        Route::get('/me', [CustomerAuthController::class, 'me']);
+        Route::post('/auth/logout', [CustomerAuthController::class, 'logout']);
     });
