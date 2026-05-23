@@ -22,12 +22,14 @@ class MenuCollectionController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string'],
-            'layout_type' => ['required', 'string', 'in:horizontal_cards,grid_cards,large_featured_cards,compact_list'],
+            'layout_type' => ['required', 'string', 'in:horizontal_cards,grid_cards,large_featured_cards,compact_list,horizontal_scroll,large_featured,split_feature,mini_cards'],
             'display_order' => ['sometimes', 'integer'],
             'status' => ['sometimes', 'string', 'in:draft,active,inactive,expired'],
             'starts_at' => ['sometimes', 'nullable', 'date'],
             'ends_at' => ['sometimes', 'nullable', 'date'],
         ]);
+
+        $data['layout_type'] = $this->normalizeLayout($data['layout_type']);
 
         $slug = $this->uniqueSlug(Str::slug($data['name']));
 
@@ -96,12 +98,16 @@ class MenuCollectionController extends Controller
         $data = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string'],
-            'layout_type' => ['sometimes', 'string', 'in:horizontal_cards,grid_cards,large_featured_cards,compact_list'],
+            'layout_type' => ['sometimes', 'string', 'in:horizontal_cards,grid_cards,large_featured_cards,compact_list,horizontal_scroll,large_featured,split_feature,mini_cards'],
             'display_order' => ['sometimes', 'integer'],
             'status' => ['sometimes', 'string', 'in:draft,active,inactive,expired'],
             'starts_at' => ['sometimes', 'nullable', 'date'],
             'ends_at' => ['sometimes', 'nullable', 'date'],
         ]);
+
+        if (isset($data['layout_type'])) {
+            $data['layout_type'] = $this->normalizeLayout($data['layout_type']);
+        }
 
         if (isset($data['name']) && $data['name'] !== $row->name) {
             $data['slug'] = $this->uniqueSlug(Str::slug($data['name']), $id);
@@ -213,6 +219,16 @@ class MenuCollectionController extends Controller
         }
 
         return response()->json(['status' => 200, 'data' => $data['order']]);
+    }
+
+    private function normalizeLayout(string $layout): string
+    {
+        return match ($layout) {
+            'horizontal_cards' => 'horizontal_scroll',
+            'large_featured_cards' => 'large_featured',
+            'grid_cards', 'horizontal_scroll', 'large_featured', 'compact_list', 'split_feature', 'mini_cards' => $layout,
+            default => 'grid_cards',
+        };
     }
 
     private function uniqueSlug(string $base, ?string $ignoreId = null): string
