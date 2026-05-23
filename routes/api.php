@@ -74,6 +74,7 @@ Route::middleware(['tenant.slug', 'auth:sanctum'])
 
         Route::get('/orders', [TenantOrderController::class, 'index']);
         Route::get('/orders/{order}', [TenantOrderController::class, 'show']);
+        Route::post('/orders/{order}/mark-paid', [TenantOrderController::class, 'markPaid']);
 
         Route::apiResource('staff', StaffController::class)->parameters(['staff' => 'id']);
         Route::apiResource('tables', TableController::class)->parameters(['tables' => 'id']);
