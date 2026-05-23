@@ -8,8 +8,8 @@
  */
 
 return [
-    'shwe-food-house' => [
-        'name' => 'Shwe Food House',
+    'demo' => [
+        'name' => 'Demo Restaurant',
         'phone' => '+95 9 777 888 999',
         'address' => 'No. 12, Hledan Road, Kamayut Township, Yangon',
         'opening_hours' => '09:00 - 22:00',
@@ -18,7 +18,7 @@ return [
         'currency' => 'MMK',
         'owner' => [
             'name' => 'Ko Aung',
-            'email' => 'koaung@shwefoodhouse.mm',
+            'email' => 'koaung@demo.menuqr.app',
             'phone' => '+95 9 777 888 999',
             'password' => 'password',
         ],
