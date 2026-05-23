@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Api\Tenant;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ShopProfileController extends Controller
 {
@@ -44,5 +44,23 @@ class ShopProfileController extends Controller
         DB::table('profile')->update($data + ['updated_at' => now()]);
 
         return $this->show();
+    }
+
+    public function updateSettings(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'points_enabled' => ['sometimes', 'boolean'],
+            'earn_rate_amount' => ['sometimes', 'integer', 'min:1'],
+            'earn_rate_points' => ['sometimes', 'integer', 'min:1'],
+            'redeem_rate_points' => ['sometimes', 'integer', 'min:1'],
+            'redeem_rate_amount' => ['sometimes', 'integer', 'min:1'],
+        ]);
+
+        DB::table('settings')->update($data + ['updated_at' => now()]);
+
+        return response()->json([
+            'status' => 200,
+            'data' => DB::table('settings')->first(),
+        ]);
     }
 }

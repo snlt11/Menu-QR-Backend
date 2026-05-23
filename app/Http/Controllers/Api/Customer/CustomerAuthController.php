@@ -83,6 +83,24 @@ class CustomerAuthController extends Controller
 
         $token = $customer->createToken('customer', ['customer'])->plainTextToken;
 
+        $profileExists = DB::table('customer_profiles')
+            ->where('customer_id', $customer->id)
+            ->exists();
+
+        if (! $profileExists) {
+            DB::table('customer_profiles')->insert([
+                'id' => (string) Str::uuid(),
+                'customer_id' => $customer->id,
+                'name' => $customer->name,
+                'phone' => $customer->phone,
+                'email' => $customer->email,
+                'total_points' => 0,
+                'membership_level' => 'basic',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
         return response()->json([
             'status' => 200,
             'data' => [

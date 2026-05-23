@@ -301,16 +301,7 @@ class TenantOrderController extends Controller
                 ]);
             }
 
-            $earned = 0;
-            if ($order->customer_type === 'member' && $order->customer_id) {
-                if ((int) $order->redeemed_points > 0) {
-                    $loyalty->deductRedeemedPoints($order->customer_id, $order->id, (int) $order->redeemed_points, $order->order_number);
-                }
-                $earned = $loyalty->pointsEarnedFor((float) $order->payable_amount);
-                if ($earned > 0) {
-                    $loyalty->awardEarnedPoints($order->customer_id, $order->id, $earned, $order->order_number);
-                }
-            }
+            $earned = $loyalty->processOrderPayment($order);
 
             $newStatus = $order->status;
             if (in_array($order->status, ['pending_payment', 'checkout_requested', 'submitted'])) {

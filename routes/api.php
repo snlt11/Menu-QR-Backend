@@ -61,6 +61,7 @@ Route::middleware(['tenant.slug', 'auth:sanctum'])
 
         Route::get('/shop-profile', [ShopProfileController::class, 'show']);
         Route::put('/shop-profile', [ShopProfileController::class, 'update']);
+        Route::put('/settings', [ShopProfileController::class, 'updateSettings']);
 
         Route::get('/kitchen/orders', [KitchenController::class, 'index']);
         Route::get('/kitchen/orders/{order}', [KitchenController::class, 'show']);
@@ -129,5 +130,6 @@ Route::middleware(['tenant.slug', 'auth:sanctum'])
         Route::get('/me', [CustomerAuthController::class, 'me']);
         Route::post('/auth/logout', [CustomerAuthController::class, 'logout']);
         Route::get('/orders', [CustomerOrderController::class, 'index']);
+        Route::get('/points', [CustomerOrderController::class, 'points']);
         Route::post('/orders/{order}/claim', [CustomerOrderController::class, 'claim']);
     });

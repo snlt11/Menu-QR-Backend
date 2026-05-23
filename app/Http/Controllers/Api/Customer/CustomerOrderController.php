@@ -43,6 +43,62 @@ class CustomerOrderController extends Controller
         ]);
     }
 
+    public function points(Request $request): JsonResponse
+    {
+        $customer = $request->user();
+
+        $profile = DB::table('customer_profiles')
+            ->where('customer_id', $customer->id)
+            ->first();
+
+        $settings = DB::table('settings')->first();
+        $shopProfile = DB::table('profile')->first();
+
+        $page = max(1, (int) $request->query('page', 1));
+        $perPage = min(50, max(1, (int) $request->query('per_page', 20)));
+
+        $txQuery = DB::table('loyalty_point_transactions')
+            ->where('customer_id', $customer->id)
+            ->orderByDesc('created_at');
+
+        $totalTx = $txQuery->count();
+
+        $transactions = $txQuery
+            ->skip(($page - 1) * $perPage)
+            ->take($perPage)
+            ->get()
+            ->map(fn ($t) => [
+                'id' => $t->id,
+                'type' => $t->type,
+                'points' => (int) $t->points,
+                'description' => $t->description,
+                'created_at' => $t->created_at,
+            ])
+            ->values()
+            ->toArray();
+
+        return response()->json([
+            'status' => 200,
+            'data' => [
+                'balance' => $profile ? (int) $profile->total_points : 0,
+                'membership_level' => $profile ? $profile->membership_level : 'basic',
+                'currency' => $shopProfile ? $shopProfile->currency : 'MMK',
+                'earning_rule' => $settings && $settings->points_enabled ? [
+                    'enabled' => true,
+                    'earn_rate_amount' => (int) $settings->earn_rate_amount,
+                    'earn_rate_points' => (int) $settings->earn_rate_points,
+                ] : ['enabled' => false],
+                'transactions' => $transactions,
+                'meta' => [
+                    'current_page' => $page,
+                    'per_page' => $perPage,
+                    'total' => $totalTx,
+                    'last_page' => max(1, (int) ceil($totalTx / $perPage)),
+                ],
+            ],
+        ]);
+    }
+
     public function claim(Request $request, string $tenant_slug, string $orderId): JsonResponse
     {
         $customer = $request->user();
