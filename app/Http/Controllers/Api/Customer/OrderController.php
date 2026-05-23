@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Customer;
 
 use App\Http\Controllers\Controller;
+use App\Models\Customer;
 use App\Services\LoyaltyService;
 use App\Services\OrderFormatHelper;
 use App\Services\OrderPricingService;
@@ -10,9 +11,35 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class OrderController extends Controller
 {
+    protected function resolveCustomer(Request $request): ?Customer
+    {
+        $user = $request->user();
+        if ($user instanceof Customer) {
+            return $user;
+        }
+
+        $header = $request->bearerToken();
+        if (! $header) {
+            return null;
+        }
+
+        $token = PersonalAccessToken::findToken($header);
+        if (! $token) {
+            return null;
+        }
+
+        $owner = $token->tokenable;
+        if ($owner instanceof Customer && $token->can('customer')) {
+            return $owner;
+        }
+
+        return null;
+    }
+
     public function store(Request $request, string $tenant_slug, string $qr_token, OrderPricingService $pricing): JsonResponse
     {
         $data = $request->validate([
@@ -29,7 +56,7 @@ class OrderController extends Controller
 
         $settings = DB::table('settings')->first();
 
-        $authed = $request->user();
+        $authed = $this->resolveCustomer($request);
         $customerId = null;
         $customerType = 'guest';
 

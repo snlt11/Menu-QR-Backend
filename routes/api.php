@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\Admin\AdminTenantController;
 use App\Http\Controllers\Api\Central\AuthController;
 use App\Http\Controllers\Api\Central\TenantResolveController;
 use App\Http\Controllers\Api\Customer\CustomerAuthController;
+use App\Http\Controllers\Api\Customer\CustomerOrderController;
 use App\Http\Controllers\Api\Customer\MenuController;
 use App\Http\Controllers\Api\Customer\OrderController;
 use App\Http\Controllers\Api\Customer\PaymentController;
@@ -123,4 +124,6 @@ Route::middleware(['tenant.slug', 'auth:sanctum'])
     ->group(function () {
         Route::get('/me', [CustomerAuthController::class, 'me']);
         Route::post('/auth/logout', [CustomerAuthController::class, 'logout']);
+        Route::get('/orders', [CustomerOrderController::class, 'index']);
+        Route::post('/orders/{order}/claim', [CustomerOrderController::class, 'claim']);
     });

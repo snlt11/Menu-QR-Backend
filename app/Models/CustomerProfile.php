@@ -3,43 +3,34 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Database\Eloquent\Model;
 
-class Customer extends Authenticatable
+class CustomerProfile extends Model
 {
-    use HasApiTokens, HasUuids;
+    use HasUuids;
 
     protected $connection = 'tenant';
 
-    protected $table = 'customers';
+    protected $table = 'customer_profiles';
 
     protected $keyType = 'string';
 
     public $incrementing = false;
 
     protected $fillable = [
+        'customer_id',
         'name',
-        'email',
         'phone',
-        'password',
-        'status',
-    ];
-
-    protected $hidden = [
-        'password',
+        'email',
+        'total_points',
+        'membership_level',
     ];
 
     protected function casts(): array
     {
         return [
-            'password' => 'hashed',
+            'total_points' => 'integer',
         ];
-    }
-
-    public function profile()
-    {
-        return $this->hasOne(CustomerProfile::class, 'customer_id');
     }
 
     public function newQuery()

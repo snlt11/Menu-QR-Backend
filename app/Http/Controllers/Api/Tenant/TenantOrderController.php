@@ -36,25 +36,31 @@ class TenantOrderController extends Controller
             $s = $o->status;
             $ps = $o->payment_status;
             $as = $o->approval_status ?? 'not_required';
+            $pt = $o->payment_timing ?? 'pay_after_meal';
             $isUnpaid = in_array($ps, ['unpaid', 'pending']);
             $isPaid = $ps === 'paid';
             $isWaitingApproval = $as === 'approval_pending';
+            $isRejected = $as === 'rejected';
             $isCompleted = in_array($s, ['completed', 'served']);
             $isFinal = in_array($s, ['completed', 'cancelled', 'expired']);
 
-            $isKitchenActive = $as !== 'approval_pending'
-                && $ps !== 'unpaid'
-                && ! in_array($s, ['completed', 'cancelled', 'expired', 'served']);
+            $kitchenStatuses = ['submitted', 'accepted', 'preparing'];
+            $isKitchenActive = ! $isFinal
+                && $as !== 'approval_pending'
+                && (
+                    ($pt === 'pay_after_meal' && in_array($s, $kitchenStatuses))
+                    || ($pt === 'pay_before_prepare' && $isPaid && in_array($s, $kitchenStatuses))
+                );
 
             $needsAttention = false;
-            if (! in_array($s, ['completed', 'cancelled'])) {
+            if (! $isFinal && ! $isRejected) {
                 if ($isWaitingApproval) {
                     $needsAttention = true;
                 }
                 if (in_array($ps, ['failed', 'expired'])) {
                     $needsAttention = true;
                 }
-                if ($isUnpaid && strtotime($o->created_at) < time() - 30 * 60) {
+                if ($isUnpaid) {
                     $needsAttention = true;
                 }
                 if ($isPaid && in_array($s, ['submitted', 'accepted'])) {
@@ -66,12 +72,16 @@ class TenantOrderController extends Controller
                 if ($ps === 'pending') {
                     $needsAttention = true;
                 }
+                if ($isKitchenActive) {
+                    $needsAttention = true;
+                }
             }
 
             return match ($tab) {
                 'attention' => $needsAttention,
                 'approval' => $isWaitingApproval,
-                'unpaid' => $isUnpaid,
+                'unpaid' => $isUnpaid && ! $isRejected,
+                'rejected' => $isRejected,
                 'paid' => $isPaid,
                 'kitchen' => $isKitchenActive,
                 'completed' => $isCompleted,
@@ -90,6 +100,7 @@ class TenantOrderController extends Controller
             'attention' => 0,
             'approval' => 0,
             'unpaid' => 0,
+            'rejected' => 0,
             'paid' => 0,
             'kitchen' => 0,
             'completed' => 0,
@@ -102,22 +113,31 @@ class TenantOrderController extends Controller
             $s = $o->status;
             $ps = $o->payment_status;
             $as = $o->approval_status ?? 'not_required';
+            $pt = $o->payment_timing ?? 'pay_after_meal';
             $oUnpaid = in_array($ps, ['unpaid', 'pending']);
             $oPaid = $ps === 'paid';
             $oWaitingApproval = $as === 'approval_pending';
+            $oRejected = $as === 'rejected';
             $oCompleted = in_array($s, ['completed', 'served']);
             $oFinal = in_array($s, ['completed', 'cancelled', 'expired']);
-            $oKitchenActive = $as !== 'approval_pending' && $ps !== 'unpaid' && ! in_array($s, ['completed', 'cancelled', 'expired', 'served']);
+
+            $kitchenStatuses = ['submitted', 'accepted', 'preparing'];
+            $oKitchenActive = ! $oFinal
+                && $as !== 'approval_pending'
+                && (
+                    ($pt === 'pay_after_meal' && in_array($s, $kitchenStatuses))
+                    || ($pt === 'pay_before_prepare' && $oPaid && in_array($s, $kitchenStatuses))
+                );
 
             $oNeedsAttention = false;
-            if (! in_array($s, ['completed', 'cancelled'])) {
+            if (! $oFinal && ! $oRejected) {
                 if ($oWaitingApproval) {
                     $oNeedsAttention = true;
                 }
                 if (in_array($ps, ['failed', 'expired'])) {
                     $oNeedsAttention = true;
                 }
-                if ($oUnpaid && strtotime($o->created_at) < time() - 30 * 60) {
+                if ($oUnpaid) {
                     $oNeedsAttention = true;
                 }
                 if ($oPaid && in_array($s, ['submitted', 'accepted'])) {
@@ -129,6 +149,9 @@ class TenantOrderController extends Controller
                 if ($ps === 'pending') {
                     $oNeedsAttention = true;
                 }
+                if ($oKitchenActive) {
+                    $oNeedsAttention = true;
+                }
             }
 
             if ($oNeedsAttention) {
@@ -137,8 +160,11 @@ class TenantOrderController extends Controller
             if ($oWaitingApproval) {
                 $counts->approval++;
             }
-            if ($oUnpaid) {
+            if ($oUnpaid && ! $oRejected) {
                 $counts->unpaid++;
+            }
+            if ($oRejected) {
+                $counts->rejected++;
             }
             if ($oPaid) {
                 $counts->paid++;

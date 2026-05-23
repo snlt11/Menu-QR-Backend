@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
@@ -27,6 +29,18 @@ class CustomerAuthController extends Controller
             'email' => $data['email'] ?? null,
             'password' => $data['password'],
             'status' => 'active',
+        ]);
+
+        DB::table('customer_profiles')->insert([
+            'id' => (string) Str::uuid(),
+            'customer_id' => $customer->id,
+            'name' => $customer->name,
+            'phone' => $customer->phone,
+            'email' => $customer->email,
+            'total_points' => 0,
+            'membership_level' => 'basic',
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         $token = $customer->createToken('customer', ['customer'])->plainTextToken;
@@ -87,6 +101,10 @@ class CustomerAuthController extends Controller
     {
         $customer = $request->user();
 
+        $profile = DB::table('customer_profiles')
+            ->where('customer_id', $customer->id)
+            ->first();
+
         return response()->json([
             'status' => 200,
             'data' => [
@@ -94,6 +112,8 @@ class CustomerAuthController extends Controller
                 'name' => $customer->name,
                 'phone' => $customer->phone,
                 'email' => $customer->email,
+                'points_balance' => $profile ? (int) $profile->total_points : 0,
+                'customer_type' => $profile ? $profile->membership_level : 'basic',
             ],
         ]);
     }

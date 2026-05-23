@@ -12,9 +12,4 @@ class PersonalAccessToken extends SanctumPersonalAccessToken
     protected $keyType = 'string';
 
     public $incrementing = false;
-
-    /**
-     * Tokens always live in the central DB so they survive tenant-context switches.
-     */
-    protected $connection = 'central';
 }
