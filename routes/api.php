@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\Tenant\ShopController;
 use App\Http\Controllers\Api\Tenant\ShopProfileController;
 use App\Http\Controllers\Api\Tenant\StaffController;
 use App\Http\Controllers\Api\Tenant\TableController;
+use App\Http\Controllers\Api\Tenant\TenantOrderController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -59,13 +60,20 @@ Route::middleware(['tenant.slug', 'auth:sanctum'])
         Route::put('/shop-profile', [ShopProfileController::class, 'update']);
 
         Route::get('/kitchen/orders', [KitchenController::class, 'index']);
+        Route::get('/kitchen/orders/{order}', [KitchenController::class, 'show']);
         Route::patch('/kitchen/orders/{order}', [KitchenController::class, 'updateStatus']);
+        Route::post('/kitchen/orders/{order}/approve', [KitchenController::class, 'approve']);
+        Route::post('/kitchen/orders/{order}/reject', [KitchenController::class, 'reject']);
 
         Route::get('/cashier/orders', [CashierController::class, 'unpaid']);
+        Route::get('/cashier/orders/{order}', [CashierController::class, 'show']);
         Route::post('/cashier/orders/{order}/bill', [CashierController::class, 'generateBill']);
         Route::post('/cashier/orders/{order}/cash', [CashierController::class, 'confirmCash']);
 
         Route::get('/reports/dashboard', [ReportController::class, 'dashboard']);
+
+        Route::get('/orders', [TenantOrderController::class, 'index']);
+        Route::get('/orders/{order}', [TenantOrderController::class, 'show']);
 
         Route::apiResource('staff', StaffController::class)->parameters(['staff' => 'id']);
         Route::apiResource('tables', TableController::class)->parameters(['tables' => 'id']);

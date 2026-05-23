@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Services\LoyaltyService;
+use App\Services\OrderFormatHelper;
 use App\Services\OrderPricingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -51,7 +52,9 @@ class OrderController extends Controller
         $orderId = (string) Str::uuid();
         $orderNumber = 'ORD-'.now()->format('Ymd').'-'.strtoupper(Str::random(6));
 
-        DB::transaction(function () use ($orderId, $orderNumber, $table, $price, $settings, $customerType, $checkoutType, $customerId) {
+        $approvalStatus = $customerType === 'guest' ? 'approval_pending' : 'not_required';
+
+        DB::transaction(function () use ($orderId, $orderNumber, $table, $price, $settings, $customerType, $checkoutType, $customerId, $approvalStatus) {
             DB::table('orders')->insert([
                 'id' => $orderId,
                 'order_number' => $orderNumber,
@@ -62,6 +65,7 @@ class OrderController extends Controller
                 'payment_timing' => $settings->payment_timing,
                 'status' => $settings->payment_timing === 'pay_before_prepare' ? 'pending_payment' : 'submitted',
                 'payment_status' => 'unpaid',
+                'approval_status' => $approvalStatus,
                 'subtotal_amount' => $price['subtotal'],
                 'service_charge_amount' => $price['service_charge'],
                 'tax_amount' => $price['tax'],
@@ -258,16 +262,16 @@ class OrderController extends Controller
             return response()->json(['status' => 404, 'message' => 'Order not found.'], 404);
         }
 
+        $formatted = OrderFormatHelper::formatWithItems($order);
+
         $canUpdate = $order->payment_status === 'unpaid'
             && ! in_array($order->status, ['completed', 'cancelled', 'expired']);
 
+        $formatted['can_update_before_payment'] = $canUpdate;
+
         return response()->json([
             'status' => 200,
-            'data' => [
-                'order' => $order,
-                'items' => DB::table('order_items')->where('order_id', $orderId)->get(),
-                'can_update_before_payment' => $canUpdate,
-            ],
+            'data' => $formatted,
         ]);
     }
 }

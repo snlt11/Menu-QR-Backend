@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Tenant;
 use App\Http\Controllers\Controller;
 use App\Services\DemoQrPaymentProvider;
 use App\Services\LoyaltyService;
+use App\Services\OrderFormatHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +20,10 @@ class CashierController extends Controller
             ->orderBy('created_at')
             ->get();
 
-        return response()->json(['status' => 200, 'data' => $orders]);
+        return response()->json([
+            'status' => 200,
+            'data' => $orders->map(fn ($o) => OrderFormatHelper::format($o))->values(),
+        ]);
     }
 
     public function generateBill(Request $request, string $tenant_slug, string $orderId, DemoQrPaymentProvider $provider): JsonResponse
@@ -128,9 +132,14 @@ class CashierController extends Controller
                 }
             }
 
+            $newStatus = $order->status;
+            if (in_array($order->status, ['pending_payment', 'checkout_requested', 'submitted'])) {
+                $newStatus = 'submitted';
+            }
+
             DB::table('orders')->where('id', $order->id)->update([
                 'payment_status' => 'paid',
-                'status' => 'completed',
+                'status' => $newStatus,
                 'earned_points' => $earned,
                 'updated_at' => now(),
             ]);
@@ -138,7 +147,22 @@ class CashierController extends Controller
 
         return response()->json([
             'status' => 200,
-            'data' => DB::table('orders')->where('id', $order->id)->first(),
+            'data' => OrderFormatHelper::formatWithItems(
+                DB::table('orders')->where('id', $orderId)->first()
+            ),
+        ]);
+    }
+
+    public function show(string $tenant_slug, string $orderId): JsonResponse
+    {
+        $order = DB::table('orders')->where('id', $orderId)->first();
+        if (! $order) {
+            return response()->json(['status' => 404, 'message' => 'Order not found.'], 404);
+        }
+
+        return response()->json([
+            'status' => 200,
+            'data' => OrderFormatHelper::formatWithItems($order),
         ]);
     }
 }
