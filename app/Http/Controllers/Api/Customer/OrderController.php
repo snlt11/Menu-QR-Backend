@@ -269,6 +269,24 @@ class OrderController extends Controller
 
         $formatted['can_update_before_payment'] = $canUpdate;
 
+        $pendingPaymentIds = DB::table('payments')
+            ->where('order_id', $orderId)
+            ->where('status', 'pending')
+            ->pluck('id');
+
+        $latestSession = $pendingPaymentIds->isNotEmpty()
+            ? DB::table('payment_sessions')
+                ->whereIn('payment_id', $pendingPaymentIds)
+                ->where('status', 'pending')
+                ->orderByDesc('created_at')
+                ->first()
+            : null;
+
+        if ($latestSession) {
+            $formatted['qr_payload'] = $latestSession->qr_payload;
+            $formatted['payment_session_id'] = $latestSession->id;
+        }
+
         return response()->json([
             'status' => 200,
             'data' => $formatted,

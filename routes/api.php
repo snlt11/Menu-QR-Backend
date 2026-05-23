@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Customer\CustomerAuthController;
 use App\Http\Controllers\Api\Customer\MenuController;
 use App\Http\Controllers\Api\Customer\OrderController;
 use App\Http\Controllers\Api\Customer\PaymentController;
+use App\Http\Controllers\Api\Customer\ReceiptController;
 use App\Http\Controllers\Api\Tenant\CashierController;
 use App\Http\Controllers\Api\Tenant\KitchenController;
 use App\Http\Controllers\Api\Tenant\MenuCategoryController;
@@ -108,6 +109,8 @@ Route::middleware(['tenant.slug'])
         Route::post('/orders/{order}/apply-points', [OrderController::class, 'applyPoints']);
         Route::post('/orders/{order}/payments', [PaymentController::class, 'createSession']);
         Route::post('/payment-sessions/{session}/confirm-demo', [PaymentController::class, 'confirmDemo']);
+        Route::get('/orders/{order}/receipt', [ReceiptController::class, 'show']);
+        Route::get('/orders/{order}/receipt/download', [ReceiptController::class, 'download']);
     });
 
 /*

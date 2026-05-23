@@ -46,7 +46,7 @@ class OrderFormatHelper
 
         $canSendToKitchen = match (true) {
             $requiresApproval && $approvalStatus !== 'approved' => false,
-            $order->payment_timing === 'pay_before_prepare' && $order->payment_status !== 'paid' => false,
+            $approvalStatus === 'rejected' => false,
             in_array($order->status, ['completed', 'cancelled', 'expired']) => false,
             default => true,
         };
@@ -84,6 +84,7 @@ class OrderFormatHelper
             'items_preview' => $itemsPreview,
             'created_at' => $order->created_at,
             'updated_at' => $order->updated_at,
+            'paid_at' => $order->paid_at ?? null,
         ];
     }
 

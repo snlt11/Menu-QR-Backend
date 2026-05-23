@@ -141,6 +141,7 @@ class CashierController extends Controller
                 'payment_status' => 'paid',
                 'status' => $newStatus,
                 'earned_points' => $earned,
+                'paid_at' => now(),
                 'updated_at' => now(),
             ]);
         });

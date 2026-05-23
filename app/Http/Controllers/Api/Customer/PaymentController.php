@@ -124,11 +124,15 @@ class PaymentController extends Controller
                 }
             }
 
-            $nextStatus = $order->payment_timing === 'pay_before_prepare' ? 'accepted' : 'completed';
+            $nextStatus = $order->status;
+            if (in_array($order->status, ['pending_payment', 'checkout_requested'])) {
+                $nextStatus = 'submitted';
+            }
             DB::table('orders')->where('id', $order->id)->update([
                 'payment_status' => 'paid',
                 'status' => $nextStatus,
                 'earned_points' => $earned,
+                'paid_at' => now(),
                 'updated_at' => now(),
             ]);
         });
