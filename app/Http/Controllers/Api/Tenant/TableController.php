@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Tenant;
 
 use App\Http\Controllers\Controller;
+use App\Services\TableAvailabilityHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -12,10 +13,11 @@ class TableController extends Controller
 {
     public function index(): JsonResponse
     {
-        $rows = DB::table('tables')->orderBy('table_number')->get()
-            ->map(fn ($t) => (array) $t + ['qr_url' => $this->buildQrUrl($t->qr_token)]);
+        $rows = DB::table('tables')->orderBy('table_number')->get();
+        $enriched = TableAvailabilityHelper::enrichCollection($rows);
+        $enriched = collect($enriched)->map(fn ($t) => $t + ['qr_url' => $this->buildQrUrl($t['qr_token'])])->all();
 
-        return response()->json(['status' => 200, 'data' => $rows]);
+        return response()->json(['status' => 200, 'data' => $enriched]);
     }
 
     public function store(Request $request): JsonResponse
@@ -110,6 +112,7 @@ class TableController extends Controller
     private function buildQrUrl(string $token): string
     {
         $base = config('app.frontend_url') ?: config('app.url');
+
         return rtrim($base, '/').'/s/'.tenant('slug').'/table/'.$token;
     }
 }
