@@ -54,6 +54,8 @@ class ShopProfileController extends Controller
             'earn_rate_points' => ['sometimes', 'integer', 'min:1'],
             'redeem_rate_points' => ['sometimes', 'integer', 'min:1'],
             'redeem_rate_amount' => ['sometimes', 'integer', 'min:1'],
+            'table_session_enabled' => ['sometimes', 'boolean'],
+            'table_session_expiry_minutes' => ['sometimes', 'integer', 'min:5', 'max:1440'],
         ]);
 
         DB::table('settings')->update($data + ['updated_at' => now()]);

@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\Customer\MenuController;
 use App\Http\Controllers\Api\Customer\OrderController;
 use App\Http\Controllers\Api\Customer\PaymentController;
 use App\Http\Controllers\Api\Customer\ReceiptController;
+use App\Http\Controllers\Api\Customer\TableSessionController;
 use App\Http\Controllers\Api\Tenant\CashierController;
 use App\Http\Controllers\Api\Tenant\KitchenController;
 use App\Http\Controllers\Api\Tenant\MenuCategoryController;
@@ -85,6 +86,9 @@ Route::middleware(['tenant.slug', 'auth:sanctum'])
 
         Route::apiResource('staff', StaffController::class)->parameters(['staff' => 'id']);
         Route::apiResource('tables', TableController::class)->parameters(['tables' => 'id']);
+        Route::post('/tables/{id}/toggle-ordering', [TableController::class, 'toggleOrdering']);
+        Route::post('/tables/{id}/block-sessions', [TableController::class, 'blockSessions']);
+        Route::post('/tables/{id}/reset-qr', [TableController::class, 'resetQrCode']);
         Route::post('/menu-categories/reorder', [MenuCategoryController::class, 'reorder']);
         Route::apiResource('menu-categories', MenuCategoryController::class)->parameters(['menu-categories' => 'id']);
         Route::apiResource('menu-items', MenuItemController::class)->parameters(['menu-items' => 'id']);
@@ -105,6 +109,7 @@ Route::middleware(['tenant.slug'])
     ->group(function () {
         Route::get('/shop', [ShopController::class, 'show']);
         Route::get('/table/{qr_token}/menu', MenuController::class);
+        Route::post('/table-sessions', [TableSessionController::class, 'store']);
 
         Route::post('/auth/register', [CustomerAuthController::class, 'register']);
         Route::post('/auth/login', [CustomerAuthController::class, 'login']);

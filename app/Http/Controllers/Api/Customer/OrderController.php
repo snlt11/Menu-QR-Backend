@@ -47,14 +47,87 @@ class OrderController extends Controller
             'items.*.menu_item_id' => ['required', 'string'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
             'items.*.instruction' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'table_session_token' => ['sometimes', 'nullable', 'string'],
         ]);
 
-        $table = DB::table('tables')->where('qr_token', $qr_token)->where('status', 'active')->first();
+        $table = DB::table('tables')
+            ->where(function ($q) use ($qr_token) {
+                $q->where('qr_token', $qr_token)
+                    ->orWhere('public_code', $qr_token);
+            })
+            ->where('status', 'active')
+            ->first();
         if (! $table) {
             return response()->json(['status' => 404, 'message' => 'Table not found.'], 404);
         }
 
         $settings = DB::table('settings')->first();
+        $sessionEnabled = $settings ? (bool) $settings->table_session_enabled : true;
+
+        $tableSessionId = null;
+
+        if ($sessionEnabled) {
+            $sessionToken = $data['table_session_token'] ?? null;
+
+            if (! $sessionToken) {
+                return response()->json([
+                    'status' => 422,
+                    'error' => 'session_expired',
+                    'message' => 'This table session expired. Please scan the QR again or ask staff.',
+                ], 422);
+            }
+
+            $session = DB::table('table_sessions')
+                ->where('token', $sessionToken)
+                ->where('table_id', $table->id)
+                ->first();
+
+            if (! $session) {
+                return response()->json([
+                    'status' => 422,
+                    'error' => 'session_expired',
+                    'message' => 'This table session expired. Please scan the QR again or ask staff.',
+                ], 422);
+            }
+
+            if ($session->status !== 'active') {
+                $errorCode = $session->status === 'blocked' ? 'session_blocked' : 'session_expired';
+
+                return response()->json([
+                    'status' => 422,
+                    'error' => $errorCode,
+                    'message' => $session->status === 'blocked'
+                        ? 'This ordering session is no longer active. Please ask staff for help.'
+                        : 'This table session expired. Please scan the QR again or ask staff.',
+                ], 422);
+            }
+
+            if ($session->expires_at && now()->gt($session->expires_at)) {
+                DB::table('table_sessions')->where('id', $session->id)->update(['status' => 'expired', 'updated_at' => now()]);
+
+                return response()->json([
+                    'status' => 422,
+                    'error' => 'session_expired',
+                    'message' => 'This table session expired. Please scan the QR again or ask staff.',
+                ], 422);
+            }
+
+            $sessionTable = DB::table('tables')->where('id', $session->table_id)->first();
+            if (! $sessionTable || ! $sessionTable->ordering_enabled) {
+                return response()->json([
+                    'status' => 403,
+                    'error' => 'ordering_disabled',
+                    'message' => 'Ordering is currently disabled for this table.',
+                ], 403);
+            }
+
+            $tableSessionId = $session->id;
+
+            DB::table('table_sessions')->where('id', $session->id)->update([
+                'last_activity_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
 
         $authed = $this->resolveCustomer($request);
         $customerId = null;
@@ -81,11 +154,12 @@ class OrderController extends Controller
 
         $approvalStatus = $customerType === 'guest' ? 'approval_pending' : 'not_required';
 
-        DB::transaction(function () use ($orderId, $orderNumber, $table, $price, $settings, $customerType, $checkoutType, $customerId, $approvalStatus) {
+        DB::transaction(function () use ($orderId, $orderNumber, $table, $price, $settings, $customerType, $checkoutType, $customerId, $approvalStatus, $tableSessionId) {
             DB::table('orders')->insert([
                 'id' => $orderId,
                 'order_number' => $orderNumber,
                 'table_id' => $table->id,
+                'table_session_id' => $tableSessionId,
                 'customer_id' => $customerId,
                 'customer_type' => $customerType,
                 'checkout_type' => $checkoutType,

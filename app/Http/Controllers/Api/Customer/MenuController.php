@@ -11,7 +11,10 @@ class MenuController extends Controller
     public function __invoke(string $tenant_slug, string $qr_token): JsonResponse
     {
         $table = DB::table('tables')
-            ->where('qr_token', $qr_token)
+            ->where(function ($q) use ($qr_token) {
+                $q->where('qr_token', $qr_token)
+                    ->orWhere('public_code', $qr_token);
+            })
             ->where('status', 'active')
             ->first();
 
