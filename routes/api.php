@@ -1,9 +1,11 @@
 <?php
 
 use App\Http\Controllers\Api\Admin\AdminAuthController;
+use App\Http\Controllers\Api\Admin\AdminOnboardingKeyController;
 use App\Http\Controllers\Api\Admin\AdminTenantController;
 use App\Http\Controllers\Api\Admin\AdminTenantRequestController;
 use App\Http\Controllers\Api\Central\AuthController;
+use App\Http\Controllers\Api\Central\OnboardingController;
 use App\Http\Controllers\Api\Central\TenantRequestController;
 use App\Http\Controllers\Api\Central\TenantResolveController;
 use App\Http\Controllers\Api\Customer\CustomerAuthController;
@@ -37,6 +39,8 @@ Route::get('/tenants/resolve', TenantResolveController::class);
 Route::post('/t/{tenant_slug}/login', [AuthController::class, 'login']);
 Route::post('/tenant-requests', [TenantRequestController::class, 'store']);
 Route::get('/tenant-requests/check-slug', [TenantRequestController::class, 'checkSlug']);
+Route::post('/onboarding/verify', [OnboardingController::class, 'verify']);
+Route::post('/onboarding/complete', [OnboardingController::class, 'complete']);
 
 /*
 |--------------------------------------------------------------------------
@@ -49,6 +53,8 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::get('/me', [AdminAuthController::class, 'me']);
     Route::post('/logout', [AdminAuthController::class, 'logout']);
     Route::apiResource('tenants', AdminTenantController::class)->parameters(['tenants' => 'id']);
+    Route::post('/tenants/{id}/onboarding-key', [AdminOnboardingKeyController::class, 'generate']);
+    Route::post('/tenants/{id}/onboarding-key/regenerate', [AdminOnboardingKeyController::class, 'regenerate']);
     Route::get('/tenant-requests', [AdminTenantRequestController::class, 'index']);
     Route::get('/tenant-requests/{tenantRequest}', [AdminTenantRequestController::class, 'show']);
     Route::post('/tenant-requests/{tenantRequest}/approve', [AdminTenantRequestController::class, 'approve']);

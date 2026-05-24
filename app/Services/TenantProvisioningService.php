@@ -10,7 +10,7 @@ use Illuminate\Support\Str;
 
 class TenantProvisioningService
 {
-    public function approveTenantRequest(TenantRequest $request): Tenant
+    public function approveTenantRequest(TenantRequest $request): array
     {
         if (! $request->isPending()) {
             throw new \LogicException('Only pending requests can be approved.');
@@ -21,7 +21,7 @@ class TenantProvisioningService
             throw new \RuntimeException('A tenant with this slug already exists.');
         }
 
-        return DB::transaction(function () use ($request): Tenant {
+        return DB::transaction(function () use ($request): array {
             $owner = [
                 'name' => $request->owner_name,
                 'email' => $request->owner_email,
@@ -41,7 +41,9 @@ class TenantProvisioningService
                 'approved_at' => now(),
             ]);
 
-            return $tenant;
+            $plainKey = app(OnboardingService::class)->generateKey($tenant);
+
+            return ['tenant' => $tenant, 'onboarding_key' => $plainKey];
         });
     }
 }

@@ -29,6 +29,7 @@ class TenantResolveController extends Controller
                     'id' => $tenant->id,
                     'name' => $tenant->name,
                     'slug' => $tenant->slug,
+                    'onboarding_status' => $tenant->onboarding_status,
                 ],
                 'login_url' => "/t/{$tenant->slug}/login",
             ],

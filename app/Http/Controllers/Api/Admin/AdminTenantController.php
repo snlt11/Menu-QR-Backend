@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Actions\CreateTenantAction;
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
+use App\Services\OnboardingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -23,6 +25,8 @@ class AdminTenantController extends Controller
             'owner_name' => $t->owner_name,
             'owner_email' => $t->owner_email,
             'status' => $t->status,
+            'onboarding_status' => $t->onboarding_status,
+            'onboarded_at' => $t->onboarded_at,
             'owner_phone' => $t->data['owner_phone'] ?? null,
             'notes' => $t->data['notes'] ?? null,
             'created_at' => $t->created_at,
@@ -55,7 +59,6 @@ class AdminTenantController extends Controller
             'owner_name' => ['required', 'string', 'max:255'],
             'owner_email' => ['required', 'email', 'max:255'],
             'owner_phone' => ['nullable', 'string', 'max:32'],
-            'password' => ['required', 'string', 'min:6'],
         ]);
 
         try {
@@ -63,13 +66,15 @@ class AdminTenantController extends Controller
                 'name' => $data['owner_name'],
                 'email' => $data['owner_email'],
                 'phone' => $data['owner_phone'] ?? null,
-                'password' => $data['password'],
+                'password' => bcrypt(Str::random(32)),
             ]);
 
             if (! empty($data['owner_phone'])) {
                 $tenant->data = array_merge($tenant->data ?? [], ['owner_phone' => $data['owner_phone']]);
                 $tenant->save();
             }
+
+            $plainKey = app(OnboardingService::class)->generateKey($tenant);
         } catch (ValidationException $e) {
             throw $e;
         } catch (\Throwable $e) {
@@ -80,8 +85,9 @@ class AdminTenantController extends Controller
             ], 500);
         }
 
-        $result = $this->tenantToArray($tenant);
+        $result = $this->tenantToArray($tenant->refresh());
         $result['login_url'] = "/t/{$tenant->slug}/login";
+        $result['onboarding_key'] = $plainKey;
 
         return response()->json(['status' => 201, 'data' => $result], 201);
     }

@@ -21,6 +21,8 @@ class Tenant extends BaseTenant implements TenantWithDatabase
             'owner_name',
             'owner_email',
             'status',
+            'onboarding_status',
+            'onboarded_at',
         ];
     }
 
@@ -33,6 +35,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     {
         return array_merge(parent::casts(), [
             'data' => 'array',
+            'onboarded_at' => 'datetime',
         ]);
     }
 }

@@ -46,7 +46,7 @@ class AdminTenantRequestController extends Controller
         }
 
         try {
-            $tenant = app(TenantProvisioningService::class)->approveTenantRequest($tenantRequest);
+            $result = app(TenantProvisioningService::class)->approveTenantRequest($tenantRequest);
         } catch (\RuntimeException $e) {
             return response()->json([
                 'status' => 409,
@@ -54,12 +54,15 @@ class AdminTenantRequestController extends Controller
             ], 409);
         }
 
+        $tenant = $result['tenant'];
+
         return response()->json([
             'status' => 200,
             'message' => 'Request approved. Tenant has been created.',
             'data' => [
                 'tenant_id' => $tenant->id,
                 'tenant_slug' => $tenant->slug,
+                'onboarding_key' => $result['onboarding_key'],
             ],
         ]);
     }
