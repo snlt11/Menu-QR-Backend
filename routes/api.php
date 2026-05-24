@@ -70,46 +70,64 @@ Route::middleware(['tenant.slug', 'auth:sanctum'])
     ->prefix('t/{tenant_slug}')
     ->group(function () {
         Route::get('/me', function (Request $request) {
-            return ['status' => 200, 'data' => $request->user()];
+            $user = $request->user();
+
+            return [
+                'status' => 200,
+                'data' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone,
+                    'role' => $user->role,
+                    'status' => $user->status,
+                ],
+            ];
         });
 
         Route::get('/shop-profile', [ShopProfileController::class, 'show']);
         Route::put('/shop-profile', [ShopProfileController::class, 'update']);
         Route::put('/settings', [ShopProfileController::class, 'updateSettings']);
 
-        Route::get('/kitchen/orders', [KitchenController::class, 'index']);
-        Route::get('/kitchen/orders/{order}', [KitchenController::class, 'show']);
-        Route::patch('/kitchen/orders/{order}', [KitchenController::class, 'updateStatus']);
-        Route::post('/kitchen/orders/{order}/approve', [KitchenController::class, 'approve']);
-        Route::post('/kitchen/orders/{order}/reject', [KitchenController::class, 'reject']);
+        Route::middleware(['tenant.role:owner,manager,cashier,kitchen'])->group(function () {
+            Route::get('/kitchen/orders', [KitchenController::class, 'index']);
+            Route::get('/kitchen/orders/{order}', [KitchenController::class, 'show']);
+            Route::patch('/kitchen/orders/{order}', [KitchenController::class, 'updateStatus']);
+            Route::post('/kitchen/orders/{order}/approve', [KitchenController::class, 'approve']);
+            Route::post('/kitchen/orders/{order}/reject', [KitchenController::class, 'reject']);
+        });
 
-        Route::get('/cashier/orders', [CashierController::class, 'unpaid']);
-        Route::get('/cashier/orders/{order}', [CashierController::class, 'show']);
-        Route::post('/cashier/orders/{order}/bill', [CashierController::class, 'generateBill']);
-        Route::post('/cashier/orders/{order}/cash', [CashierController::class, 'confirmCash']);
+        Route::middleware(['tenant.role:owner,manager,cashier'])->group(function () {
+            Route::get('/cashier/orders', [CashierController::class, 'unpaid']);
+            Route::get('/cashier/orders/{order}', [CashierController::class, 'show']);
+            Route::post('/cashier/orders/{order}/bill', [CashierController::class, 'generateBill']);
+            Route::post('/cashier/orders/{order}/cash', [CashierController::class, 'confirmCash']);
 
-        Route::get('/reports/dashboard', [ReportController::class, 'dashboard']);
+            Route::get('/orders', [TenantOrderController::class, 'index']);
+            Route::get('/orders/{order}', [TenantOrderController::class, 'show']);
+            Route::post('/orders/{order}/mark-paid', [TenantOrderController::class, 'markPaid']);
 
-        Route::get('/orders', [TenantOrderController::class, 'index']);
-        Route::get('/orders/{order}', [TenantOrderController::class, 'show']);
-        Route::post('/orders/{order}/mark-paid', [TenantOrderController::class, 'markPaid']);
+            Route::get('/customers', [TenantCustomerController::class, 'index']);
+            Route::get('/customers/{customer}', [TenantCustomerController::class, 'show']);
+        });
 
-        Route::get('/customers', [TenantCustomerController::class, 'index']);
-        Route::get('/customers/{customer}', [TenantCustomerController::class, 'show']);
+        Route::middleware(['tenant.role:owner,manager'])->group(function () {
+            Route::get('/reports/dashboard', [ReportController::class, 'dashboard']);
 
-        Route::apiResource('staff', StaffController::class)->parameters(['staff' => 'id']);
-        Route::apiResource('tables', TableController::class)->parameters(['tables' => 'id']);
-        Route::post('/tables/{id}/toggle-ordering', [TableController::class, 'toggleOrdering']);
-        Route::post('/tables/{id}/block-sessions', [TableController::class, 'blockSessions']);
-        Route::post('/tables/{id}/reset-qr', [TableController::class, 'resetQrCode']);
-        Route::post('/menu-categories/reorder', [MenuCategoryController::class, 'reorder']);
-        Route::apiResource('menu-categories', MenuCategoryController::class)->parameters(['menu-categories' => 'id']);
-        Route::apiResource('menu-items', MenuItemController::class)->parameters(['menu-items' => 'id']);
-        Route::post('/menu-collections/reorder', [MenuCollectionController::class, 'reorder']);
-        Route::apiResource('menu-collections', MenuCollectionController::class)->parameters(['menu-collections' => 'id']);
-        Route::post('/menu-collections/{id}/items', [MenuCollectionController::class, 'attachItem']);
-        Route::post('/menu-collections/{id}/items/reorder', [MenuCollectionController::class, 'reorderItems']);
-        Route::delete('/menu-collections/{id}/items/{itemId}', [MenuCollectionController::class, 'detachItem']);
+            Route::apiResource('staff', StaffController::class)->parameters(['staff' => 'id']);
+            Route::apiResource('tables', TableController::class)->parameters(['tables' => 'id']);
+            Route::post('/tables/{id}/toggle-ordering', [TableController::class, 'toggleOrdering']);
+            Route::post('/tables/{id}/block-sessions', [TableController::class, 'blockSessions']);
+            Route::post('/tables/{id}/reset-qr', [TableController::class, 'resetQrCode']);
+            Route::post('/menu-categories/reorder', [MenuCategoryController::class, 'reorder']);
+            Route::apiResource('menu-categories', MenuCategoryController::class)->parameters(['menu-categories' => 'id']);
+            Route::apiResource('menu-items', MenuItemController::class)->parameters(['menu-items' => 'id']);
+            Route::post('/menu-collections/reorder', [MenuCollectionController::class, 'reorder']);
+            Route::apiResource('menu-collections', MenuCollectionController::class)->parameters(['menu-collections' => 'id']);
+            Route::post('/menu-collections/{id}/items', [MenuCollectionController::class, 'attachItem']);
+            Route::post('/menu-collections/{id}/items/reorder', [MenuCollectionController::class, 'reorderItems']);
+            Route::delete('/menu-collections/{id}/items/{itemId}', [MenuCollectionController::class, 'detachItem']);
+        });
     });
 
 /*

@@ -36,6 +36,7 @@ class AuthController extends Controller
                 "tenant:{$tenant->slug}",
                 [$tenantUser->role],
             )->plainTextToken;
+
             return [$tenantUser, $token];
         });
 
@@ -46,6 +47,7 @@ class AuthController extends Controller
                     'message' => 'Your account is inactive. Contact the shop owner.',
                 ], 403);
             }
+
             return response()->json([
                 'status' => 401,
                 'message' => 'Invalid credentials.',
@@ -78,7 +80,7 @@ class AuthController extends Controller
     {
         return match ($role) {
             'owner', 'manager' => "/t/{$slug}/dashboard",
-            'cashier' => "/t/{$slug}/cashier",
+            'cashier' => "/t/{$slug}/orders",
             'kitchen' => "/t/{$slug}/kitchen",
             default => "/t/{$slug}/dashboard",
         };

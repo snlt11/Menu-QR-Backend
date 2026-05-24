@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Middleware\EnsureAdmin;
+use App\Http\Middleware\EnsureTenantRole;
+use App\Http\Middleware\IdentifyTenantBySlug;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -13,8 +16,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'tenant.slug' => \App\Http\Middleware\IdentifyTenantBySlug::class,
-            'admin' => \App\Http\Middleware\EnsureAdmin::class,
+            'tenant.slug' => IdentifyTenantBySlug::class,
+            'admin' => EnsureAdmin::class,
+            'tenant.role' => EnsureTenantRole::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
