@@ -7,13 +7,15 @@ use App\Http\Controllers\Controller;
 use App\Models\Tenant;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class AdminTenantController extends Controller
 {
-    public function index(): JsonResponse
+    private function tenantToArray(Tenant $t): array
     {
-        $rows = Tenant::orderBy('created_at', 'desc')->get()->map(fn (Tenant $t) => [
+        return [
             'id' => $t->id,
             'name' => $t->name,
             'slug' => $t->slug,
@@ -21,9 +23,16 @@ class AdminTenantController extends Controller
             'owner_name' => $t->owner_name,
             'owner_email' => $t->owner_email,
             'status' => $t->status,
+            'owner_phone' => $t->data['owner_phone'] ?? null,
+            'notes' => $t->data['notes'] ?? null,
             'created_at' => $t->created_at,
             'updated_at' => $t->updated_at,
-        ]);
+        ];
+    }
+
+    public function index(): JsonResponse
+    {
+        $rows = Tenant::orderBy('created_at', 'desc')->get()->map(fn (Tenant $t) => $this->tenantToArray($t));
 
         return response()->json(['status' => 200, 'data' => $rows]);
     }
@@ -34,20 +43,8 @@ class AdminTenantController extends Controller
         if (! $tenant) {
             return response()->json(['status' => 404, 'message' => 'Tenant not found.'], 404);
         }
-        return response()->json([
-            'status' => 200,
-            'data' => [
-                'id' => $tenant->id,
-                'name' => $tenant->name,
-                'slug' => $tenant->slug,
-                'database_name' => $tenant->database_name,
-                'owner_name' => $tenant->owner_name,
-                'owner_email' => $tenant->owner_email,
-                'status' => $tenant->status,
-                'created_at' => $tenant->created_at,
-                'updated_at' => $tenant->updated_at,
-            ],
-        ]);
+
+        return response()->json(['status' => 200, 'data' => $this->tenantToArray($tenant)]);
     }
 
     public function store(Request $request, CreateTenantAction $action): JsonResponse
@@ -61,26 +58,32 @@ class AdminTenantController extends Controller
             'password' => ['required', 'string', 'min:6'],
         ]);
 
-        $tenant = $action->execute($data['name'], $data['slug'], [
-            'name' => $data['owner_name'],
-            'email' => $data['owner_email'],
-            'phone' => $data['owner_phone'] ?? null,
-            'password' => $data['password'],
-        ]);
+        try {
+            $tenant = $action->execute($data['name'], $data['slug'], [
+                'name' => $data['owner_name'],
+                'email' => $data['owner_email'],
+                'phone' => $data['owner_phone'] ?? null,
+                'password' => $data['password'],
+            ]);
 
-        return response()->json([
-            'status' => 201,
-            'data' => [
-                'id' => $tenant->id,
-                'name' => $tenant->name,
-                'slug' => $tenant->slug,
-                'database_name' => $tenant->database_name,
-                'owner_name' => $tenant->owner_name,
-                'owner_email' => $tenant->owner_email,
-                'status' => $tenant->status,
-                'login_url' => "/t/{$tenant->slug}/login",
-            ],
-        ], 201);
+            if (! empty($data['owner_phone'])) {
+                $tenant->data = array_merge($tenant->data ?? [], ['owner_phone' => $data['owner_phone']]);
+                $tenant->save();
+            }
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'message' => 'Could not create tenant workspace. Please check the details and try again.',
+            ], 500);
+        }
+
+        $result = $this->tenantToArray($tenant);
+        $result['login_url'] = "/t/{$tenant->slug}/login";
+
+        return response()->json(['status' => 201, 'data' => $result], 201);
     }
 
     public function update(Request $request, string $id): JsonResponse
@@ -91,13 +94,42 @@ class AdminTenantController extends Controller
         }
 
         $data = $request->validate([
-            'name' => ['sometimes', 'string', 'max:255'],
-            'status' => ['sometimes', 'string', 'in:active,inactive,suspended'],
+            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'slug' => ['sometimes', 'required', 'string', 'max:64', 'regex:/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/', Rule::unique('tenants', 'slug')->ignore($tenant->id)],
+            'owner_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'owner_email' => ['sometimes', 'nullable', 'email', 'max:255'],
+            'status' => ['sometimes', 'required', 'string', 'in:active,inactive,suspended'],
+            'owner_phone' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'notes' => ['sometimes', 'nullable', 'string', 'max:1000'],
         ]);
 
-        $tenant->fill($data)->save();
+        try {
+            $tenantData = $tenant->data ?? [];
+            if (array_key_exists('owner_phone', $data)) {
+                $tenantData['owner_phone'] = $data['owner_phone'];
+                unset($data['owner_phone']);
+            }
+            if (array_key_exists('notes', $data)) {
+                $tenantData['notes'] = $data['notes'];
+                unset($data['notes']);
+            }
 
-        return $this->show($id);
+            $tenant->fill($data);
+            if (! empty($tenantData)) {
+                $tenant->data = $tenantData;
+            }
+            $tenant->save();
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'message' => 'Could not update tenant. Please try again.',
+            ], 500);
+        }
+
+        return response()->json(['status' => 200, 'data' => $this->tenantToArray($tenant)]);
     }
 
     public function destroy(string $id): JsonResponse
@@ -107,17 +139,28 @@ class AdminTenantController extends Controller
             return response()->json(['status' => 404, 'message' => 'Tenant not found.'], 404);
         }
 
-        // Best-effort: drop the tenant database only if it still exists.
-        try {
-            $manager = $tenant->database()->manager();
-            if ($manager->databaseExists($tenant->database()->getName())) {
-                $manager->deleteDatabase($tenant);
-            }
-        } catch (\Throwable $e) {
-            // ignore — the row deletion below is still useful
-        }
-        $tenant->delete();
+        $databaseName = $tenant->database_name;
 
-        return response()->json(['status' => 200, 'data' => ['id' => $id]]);
+        try {
+            $tenant->delete();
+        } catch (\Throwable $e) {
+            if ($databaseName && preg_match('/^[A-Za-z0-9_]+$/', $databaseName) && str_starts_with($databaseName, 'tenant_')) {
+                try {
+                    DB::statement("DROP DATABASE IF EXISTS `{$databaseName}`");
+                } catch (\Throwable $inner) {
+                    report($inner);
+                }
+            }
+
+            if (Tenant::find($id)) {
+                report($e);
+
+                return response()->json([
+                    'message' => 'Could not delete tenant. Please try again.',
+                ], 500);
+            }
+        }
+
+        return response()->json(['message' => 'Tenant deleted successfully.']);
     }
 }

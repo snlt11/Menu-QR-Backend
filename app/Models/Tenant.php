@@ -28,4 +28,11 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     {
         return 'id';
     }
+
+    protected function casts(): array
+    {
+        return array_merge(parent::casts(), [
+            'data' => 'array',
+        ]);
+    }
 }
