@@ -6,6 +6,7 @@ use App\Actions\CreateTenantAction;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -26,15 +27,15 @@ class DemoDataSeeder extends Seeder
     private function seedDefaultAdmin(): void
     {
         User::updateOrCreate(
-            ['email' => 'admin@menuqr.local'],
+            ['email' => 'admin@menuqr.asia'],
             [
                 'name' => 'Platform Admin',
-                'password' => Hash::make('password'),
+                'password' => Hash::make('554433221100'),
                 'global_role' => 'admin',
                 'status' => 'active',
             ],
         );
-        $this->command?->info('seeded admin: admin@menuqr.local / password');
+        $this->command?->info('seeded admin: admin@menuqr.asia / 554433221100');
     }
 
     private function seedShop(string $slug, array $shop): void
@@ -115,6 +116,7 @@ class DemoDataSeeder extends Seeder
                 'updated_at' => now(),
             ]);
         }
+
         return $ids;
     }
 
@@ -134,6 +136,7 @@ class DemoDataSeeder extends Seeder
                 'updated_at' => now(),
             ]);
         }
+
         return $ids;
     }
 
@@ -158,6 +161,7 @@ class DemoDataSeeder extends Seeder
                 'updated_at' => now(),
             ]);
         }
+
         return $ids;
     }
 
@@ -209,6 +213,7 @@ class DemoDataSeeder extends Seeder
                 'ends_at' => now()->endOfDay()->toDateTimeString(),
             ];
         }
+
         return ['starts_at' => null, 'ends_at' => null];
     }
 
@@ -245,6 +250,7 @@ class DemoDataSeeder extends Seeder
                 'updated_at' => now(),
             ]);
         }
+
         return $ids;
     }
 
@@ -360,7 +366,7 @@ class DemoDataSeeder extends Seeder
         }
     }
 
-    private function seedPaymentForOrder(string $orderId, string $orderNumber, float $amount, \Illuminate\Support\Carbon $at, bool $isMember): void
+    private function seedPaymentForOrder(string $orderId, string $orderNumber, float $amount, Carbon $at, bool $isMember): void
     {
         $paymentId = (string) Str::uuid();
         DB::table('payments')->insert([
@@ -408,7 +414,7 @@ class DemoDataSeeder extends Seeder
         ]);
     }
 
-    private function seedLoyaltyForOrder(string $customerId, string $orderId, string $orderNumber, int $redeemed, int $earned, \Illuminate\Support\Carbon $at): void
+    private function seedLoyaltyForOrder(string $customerId, string $orderId, string $orderNumber, int $redeemed, int $earned, Carbon $at): void
     {
         if ($redeemed > 0) {
             DB::table('loyalty_point_transactions')->insert([

@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\Tenant;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 beforeEach(function () {
@@ -11,19 +13,19 @@ afterEach(function () {
         if (isset($this->tenant) && $this->tenant) {
             $this->tenant->database()->manager()->deleteDatabase($this->tenant);
         }
-    } catch (\Throwable $e) {
+    } catch (Throwable $e) {
     }
 });
 
 test('admin can create a tenant + owner row inside the new tenant DB', function () {
-    $admin = \App\Models\User::create([
-        'name' => 'Admin', 'email' => 'admin@menuqr.local', 'password' => bcrypt('password'),
+    $admin = User::create([
+        'name' => 'Admin', 'email' => 'admin@menuqr.asia', 'password' => bcrypt('554433221100'),
         'global_role' => 'admin', 'status' => 'active',
     ]);
     $token = $admin->createToken('admin', ['admin'])->plainTextToken;
 
     // Only admin row exists in central before the call.
-    $adminCount = \App\Models\User::where('global_role', 'admin')->count();
+    $adminCount = User::where('global_role', 'admin')->count();
 
     $this->withHeader('Authorization', 'Bearer '.$token)
         ->postJson('/api/admin/tenants', [
@@ -33,14 +35,14 @@ test('admin can create a tenant + owner row inside the new tenant DB', function 
             'owner_email' => 'min@example.com',
             'password' => 'password',
         ])->assertStatus(201)
-          ->assertJsonPath('data.slug', 'mingalar-bbq')
-          ->assertJsonPath('data.login_url', '/t/mingalar-bbq/login');
+        ->assertJsonPath('data.slug', 'mingalar-bbq')
+        ->assertJsonPath('data.login_url', '/t/mingalar-bbq/login');
 
     // No new row written to central.users — owner lives only inside tenant.users.
-    expect(\App\Models\User::where('global_role', 'admin')->count())->toBe($adminCount);
-    expect(\App\Models\User::where('email', 'min@example.com')->exists())->toBeFalse();
+    expect(User::where('global_role', 'admin')->count())->toBe($adminCount);
+    expect(User::where('email', 'min@example.com')->exists())->toBeFalse();
 
-    $newTenant = \App\Models\Tenant::where('slug', 'mingalar-bbq')->first();
+    $newTenant = Tenant::where('slug', 'mingalar-bbq')->first();
     $ownerRow = $newTenant->run(fn () => DB::table('users')->where('email', 'min@example.com')->first());
     expect($ownerRow->role)->toBe('owner');
 
@@ -61,8 +63,8 @@ test('non-admin token cannot create a tenant', function () {
 });
 
 test('admin tenant create rejects a duplicate slug', function () {
-    $admin = \App\Models\User::create([
-        'name' => 'Admin', 'email' => 'admin@menuqr.local', 'password' => bcrypt('password'),
+    $admin = User::create([
+        'name' => 'Admin', 'email' => 'admin@menuqr.asia', 'password' => bcrypt('554433221100'),
         'global_role' => 'admin', 'status' => 'active',
     ]);
     $token = $admin->createToken('admin', ['admin'])->plainTextToken;
@@ -78,14 +80,14 @@ test('admin tenant create rejects a duplicate slug', function () {
 });
 
 test('admin login succeeds and returns a token', function () {
-    \App\Models\User::create([
-        'name' => 'Admin', 'email' => 'admin@menuqr.local', 'password' => bcrypt('password'),
+    User::create([
+        'name' => 'Admin', 'email' => 'admin@menuqr.asia', 'password' => bcrypt('554433221100'),
         'global_role' => 'admin', 'status' => 'active',
     ]);
 
     $res = $this->postJson('/api/admin/login', [
-        'email' => 'admin@menuqr.local',
-        'password' => 'password',
+        'email' => 'admin@menuqr.asia',
+        'password' => '554433221100',
     ])->assertOk();
 
     expect($res['data']['user']['global_role'])->toBe('admin');
