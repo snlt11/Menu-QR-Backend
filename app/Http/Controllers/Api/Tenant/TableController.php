@@ -44,7 +44,7 @@ class TableController extends Controller
 
         return response()->json([
             'status' => 201,
-            'data' => $row->toArray() + ['qr_url' => $this->buildQrUrl($row->public_code)],
+            'data' => $row->toArray() + ['qr_url' => $this->buildQrUrl($row->public_code ?? $row->qr_token)],
         ], 201);
     }
 
@@ -57,7 +57,7 @@ class TableController extends Controller
 
         return response()->json([
             'status' => 200,
-            'data' => $row->toArray() + ['qr_url' => $this->buildQrUrl($row->public_code)],
+            'data' => $row->toArray() + ['qr_url' => $this->buildQrUrl($row->public_code ?? $row->qr_token)],
         ]);
     }
 
@@ -73,7 +73,7 @@ class TableController extends Controller
 
         return response()->json([
             'status' => 200,
-            'data' => $row->toArray() + ['qr_url' => $this->buildQrUrl($row->public_code)],
+            'data' => $row->toArray() + ['qr_url' => $this->buildQrUrl($row->public_code ?? $row->qr_token)],
         ]);
     }
 
@@ -101,7 +101,7 @@ class TableController extends Controller
 
         return response()->json([
             'status' => 200,
-            'data' => $row->toArray() + ['qr_url' => $this->buildQrUrl($row->public_code)],
+            'data' => $row->toArray() + ['qr_url' => $this->buildQrUrl($row->public_code ?? $row->qr_token)],
         ]);
     }
 
@@ -140,7 +140,7 @@ class TableController extends Controller
 
         return response()->json([
             'status' => 200,
-            'data' => $row->toArray() + ['qr_url' => $this->buildQrUrl($row->public_code)],
+            'data' => $row->toArray() + ['qr_url' => $this->buildQrUrl($row->public_code ?? $row->qr_token)],
         ]);
     }
 

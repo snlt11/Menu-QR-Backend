@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Demo menu data for two restaurants used by DemoDataSeeder + demo:photos.
+ * Demo menu data for three restaurants used by DemoDataSeeder + demo:photos.
  *
  * Each item.slug is also the photo filename (public/photos/<tenant>/<slug>.jpg)
  * and the wiki_article (when present) is what demo:photos looks up on Wikipedia.
@@ -23,12 +23,18 @@ return [
             'password' => 'password',
         ],
         'tables' => [
-            ['number' => 'A1', 'name' => 'Window A1'],
-            ['number' => 'A2', 'name' => 'Window A2'],
-            ['number' => 'A3', 'name' => 'Window A3'],
-            ['number' => 'B1', 'name' => 'Center B1'],
-            ['number' => 'B2', 'name' => 'Center B2'],
-            ['number' => 'VIP1', 'name' => 'VIP Room'],
+            ['number' => '1', 'name' => 'Table 1'],
+            ['number' => '2', 'name' => 'Table 2'],
+            ['number' => '3', 'name' => 'Table 3'],
+            ['number' => '4', 'name' => 'Table 4'],
+            ['number' => '5', 'name' => 'Table 5'],
+            ['number' => '6', 'name' => 'Table 6'],
+            ['number' => '7', 'name' => 'Table 7'],
+            ['number' => '8', 'name' => 'Table 8'],
+            ['number' => '9', 'name' => 'Table 9'],
+            ['number' => '10', 'name' => 'Table 10'],
+            ['number' => '11', 'name' => 'Table 11'],
+            ['number' => '12', 'name' => 'Table 12'],
         ],
         'categories' => [
             ['key' => 'rice', 'name' => 'Rice & Mains'],
@@ -40,7 +46,6 @@ return [
             ['key' => 'desserts', 'name' => 'Desserts'],
         ],
         'items' => [
-            // Rice & Mains
             [
                 'slug' => 'chicken-fried-rice',
                 'category' => 'rice',
@@ -66,8 +71,6 @@ return [
                 'price' => 9500,
                 'wiki_article' => 'Burmese curry',
             ],
-
-            // Noodles
             [
                 'slug' => 'mohinga',
                 'category' => 'noodles',
@@ -100,8 +103,6 @@ return [
                 'price' => 5000,
                 'wiki_article' => 'Nan gyi thohk',
             ],
-
-            // Soups & Curries
             [
                 'slug' => 'hincho',
                 'category' => 'soups',
@@ -118,8 +119,6 @@ return [
                 'price' => 4500,
                 'wiki_article' => 'Dal',
             ],
-
-            // Salads
             [
                 'slug' => 'lahpet-thoke',
                 'category' => 'salads',
@@ -144,8 +143,6 @@ return [
                 'price' => 3500,
                 'wiki_article' => 'Caprese salad',
             ],
-
-            // Snacks
             [
                 'slug' => 'samusa-thoke',
                 'category' => 'snacks',
@@ -162,8 +159,6 @@ return [
                 'price' => 5000,
                 'wiki_article' => 'Mohinga',
             ],
-
-            // Drinks
             [
                 'slug' => 'burmese-milk-tea',
                 'category' => 'drinks',
@@ -188,8 +183,6 @@ return [
                 'price' => 1500,
                 'wiki_article' => 'Sugarcane juice',
             ],
-
-            // Desserts
             [
                 'slug' => 'shwe-yin-aye',
                 'category' => 'desserts',
@@ -232,61 +225,270 @@ return [
                 'items' => ['nan-gyi-thoke', 'lahpet-thoke', 'shwe-yin-aye'],
             ],
         ],
+    ],
+
+    'myanmar-restart' => [
+        'name' => 'Myanmar Restart',
+        'phone' => '+95 9 123 456 789',
+        'address' => 'No. 45, Kabar Aye Pagoda Road, Bahan Township, Yangon',
+        'opening_hours' => '08:00 - 21:00',
+        'service_charge_rate' => 5,
+        'tax_rate' => 0,
+        'currency' => 'MMK',
+        'owner' => [
+            'name' => 'Daw Khin',
+            'email' => 'dawkhin@myanmarrestart.app',
+            'phone' => '+95 9 123 456 789',
+            'password' => 'password',
+        ],
+        'tables' => [
+            ['number' => '1', 'name' => 'Garden 1'],
+            ['number' => '2', 'name' => 'Garden 2'],
+            ['number' => '3', 'name' => 'Garden 3'],
+            ['number' => '4', 'name' => 'Indoor 4'],
+            ['number' => '5', 'name' => 'Indoor 5'],
+            ['number' => '6', 'name' => 'Corner 6'],
+            ['number' => '7', 'name' => 'Corner 7'],
+            ['number' => '8', 'name' => 'VIP Room'],
+        ],
+        'categories' => [
+            ['key' => 'rice', 'name' => 'Rice & Curries'],
+            ['key' => 'noodles', 'name' => 'Noodle Dishes'],
+            ['key' => 'salads', 'name' => 'Salads & Appetizers'],
+            ['key' => 'soups', 'name' => 'Soups'],
+            ['key' => 'drinks', 'name' => 'Drinks & Beverages'],
+            ['key' => 'desserts', 'name' => 'Desserts & Sweets'],
+        ],
+        'items' => [
+            [
+                'slug' => 'htamin-jin-thoke',
+                'category' => 'rice',
+                'name' => 'Htamin Jin Thoke',
+                'description' => 'Inle-style fermented rice salad with tomato, turmeric oil and crunchy toppings.',
+                'price' => 5000,
+                'wiki_article' => 'Burmese cuisine',
+            ],
+            [
+                'slug' => 'kat-kyi-kaik',
+                'category' => 'rice',
+                'name' => 'Kat Kyi Kaik (Shrimp Noodle)',
+                'description' => 'Thick rice noodles stir-fried with shrimp, bean sprouts and soy sauce.',
+                'price' => 5500,
+                'wiki_article' => 'Burmese cuisine',
+            ],
+            [
+                'slug' => 'nga-baung-cho',
+                'category' => 'rice',
+                'name' => 'Nga Baung Cho (Fish Curry)',
+                'description' => 'Traditional Myanmar fish curry with fresh herbs and seasonal vegetables.',
+                'price' => 7000,
+                'wiki_article' => 'Burmese curry',
+            ],
+            [
+                'slug' => 'kya-zan-hinga',
+                'category' => 'rice',
+                'name' => 'Kya Zan Hinga',
+                'description' => 'Royal-style chicken curry with rich coconut gravy served with fragrant rice.',
+                'price' => 8500,
+                'wiki_article' => 'Burmese curry',
+            ],
+            [
+                'slug' => 'tofu-thoke',
+                'category' => 'noodles',
+                'name' => 'Tohu Thoke (Chickpea Tofu Salad)',
+                'description' => 'Shan-style chickpea tofu salad with turmeric oil, peanuts and fresh herbs.',
+                'price' => 4000,
+                'wiki_article' => 'Shan cuisine',
+            ],
+            [
+                'slug' => 'meeshay',
+                'category' => 'noodles',
+                'name' => 'Meeshay',
+                'description' => 'Shan-style rice noodles with marinated pork, tomato sauce and pickled mustard greens.',
+                'price' => 4500,
+                'wiki_article' => 'Meeshay',
+            ],
+            [
+                'slug' => 'khao-soi-myanmar',
+                'category' => 'noodles',
+                'name' => 'Myanmar Khao Soi',
+                'description' => 'Coconut chicken noodle soup with egg noodles, crispy noodles and lime.',
+                'price' => 5000,
+                'wiki_article' => 'Ohn no khao swè',
+            ],
+            [
+                'slug' => 'kachin-noodle',
+                'category' => 'noodles',
+                'name' => 'Kachin Style Noodle',
+                'description' => 'Hearty wheat noodle soup with slow-cooked pork and herbs from Kachin State.',
+                'price' => 5500,
+                'wiki_article' => 'Noodle soup',
+            ],
+            [
+                'slug' => 'kya-zan-chin-thoke',
+                'category' => 'salads',
+                'name' => 'Kya Zan Chin (Pennywort Salad)',
+                'description' => 'Fresh pennywort leaves tossed with onion, lime, fried garlic and peanuts.',
+                'price' => 3000,
+                'wiki_article' => 'Salad',
+            ],
+            [
+                'slug' => 'pon-yei-gyi-thoke',
+                'category' => 'salads',
+                'name' => 'Pon Yei Gyi Thoke',
+                'description' => 'Fermented bean paste salad with onion, chili and sesame oil.',
+                'price' => 3500,
+                'wiki_article' => 'Burmese cuisine',
+            ],
+            [
+                'slug' => 'a-kyaw-sone',
+                'category' => 'salads',
+                'name' => 'A Kyaw Sone (Mixed Fritters)',
+                'description' => 'Assorted crispy fritters — gourd, onion, banana and potato served with tamarind dip.',
+                'price' => 4000,
+                'wiki_article' => 'Fritter',
+            ],
+            [
+                'slug' => 'myanmar-chicken-soup',
+                'category' => 'soups',
+                'name' => 'Myanmar Chicken Soup',
+                'description' => 'Clear chicken broth with glass noodles, mushrooms and fresh coriander.',
+                'price' => 3500,
+                'wiki_article' => 'Chicken soup',
+            ],
+            [
+                'slug' => 'chicken-hti',
+                'category' => 'soups',
+                'name' => 'Chicken Hti (Sour Leaf Soup)',
+                'description' => 'Tangy roselle leaf soup with chicken, tomato and chili — a Myanmar home favourite.',
+                'price' => 3000,
+                'wiki_article' => 'Roselle',
+            ],
+            [
+                'slug' => 'falooda',
+                'category' => 'drinks',
+                'name' => 'Falooda',
+                'description' => 'Sweet rose milk drink with basil seeds, vermicelli and ice cream.',
+                'price' => 3500,
+                'wiki_article' => 'Falooda',
+            ],
+            [
+                'slug' => 'fresh-avocado-juice',
+                'category' => 'drinks',
+                'name' => 'Fresh Avocado Juice',
+                'description' => 'Blended Myanmar avocado with milk and honey, served icy cold.',
+                'price' => 3000,
+                'wiki_article' => 'Avocado',
+            ],
+            [
+                'slug' => 'tamarind-juice',
+                'category' => 'drinks',
+                'name' => 'Tamarind Juice',
+                'description' => 'Sweet and tangy tamarind drink served chilled.',
+                'price' => 1500,
+                'wiki_article' => 'Tamarind',
+            ],
+            [
+                'slug' => 'htaneet-yei',
+                'category' => 'drinks',
+                'name' => 'Htaneet Yei (Palm Juice)',
+                'description' => 'Fresh toddy palm juice, lightly sweet and refreshing.',
+                'price' => 2000,
+                'wiki_article' => 'Palm wine',
+            ],
+            [
+                'slug' => 'sane-tha-ma-cho',
+                'category' => 'desserts',
+                'name' => 'Sane Tha Ma Cho',
+                'description' => 'Three-layer coconut jelly dessert with pandan and rose flavours.',
+                'price' => 2500,
+                'wiki_article' => 'Jelly (dessert)',
+            ],
+            [
+                'slug' => 'hto-mont',
+                'category' => 'desserts',
+                'name' => 'Hto Mont (Sticky Rice Cake)',
+                'description' => 'Sweet glutinous rice cake steamed in banana leaf with coconut.',
+                'price' => 2000,
+                'wiki_article' => 'Sticky rice',
+            ],
+        ],
+        'collections' => [
+            [
+                'name' => 'Popular Items',
+                'layout_type' => 'horizontal_cards',
+                'display_order' => 1,
+                'status' => 'active',
+                'items' => ['meeshay', 'tofu-thoke', 'htamin-jin-thoke', 'kya-zan-hinga', 'falooda'],
+            ],
+            [
+                'name' => 'Today Special',
+                'layout_type' => 'large_featured_cards',
+                'display_order' => 2,
+                'status' => 'active',
+                'time_window' => 'today',
+                'items' => ['nga-baung-cho', 'kachin-noodle'],
+            ],
+            [
+                'name' => 'Must Try',
+                'layout_type' => 'grid_cards',
+                'display_order' => 3,
+                'status' => 'active',
+                'items' => ['khao-soi-myanmar', 'pon-yei-gyi-thoke', 'fresh-avocado-juice', 'kya-zan-chin-thoke'],
+            ],
+        ],
         'customers' => [
-            ['name' => 'Mg Mg', 'email' => 'mgmg@example.com', 'phone' => '09987654321', 'points' => 50],
-            ['name' => 'Daw Aye', 'email' => 'aye@example.com', 'phone' => '09111222333', 'points' => 120],
-            ['name' => 'Ko Zaw', 'email' => 'zaw@example.com', 'phone' => '09444555666', 'points' => 15],
+            ['name' => 'Ma Mya', 'email' => 'mymya@myanmarrestart.app', 'phone' => '09777888999', 'points' => 80],
+            ['name' => 'U Thant', 'email' => 'uthant@myanmarrestart.app', 'phone' => '09555666777', 'points' => 200],
+            ['name' => 'Ma Yin', 'email' => 'mayin@myanmarrestart.app', 'phone' => '09333444555', 'points' => 45],
         ],
         'orders' => [
-            // Completed + paid (today) — feeds today's sales + popular items + earned points.
             [
-                'table' => 'A1', 'customer' => 'mgmg@example.com', 'minutes_ago' => 120,
+                'table' => '1', 'customer' => 'mymya@myanmarrestart.app', 'minutes_ago' => 130,
                 'status' => 'completed', 'payment_status' => 'paid',
-                'items' => [['mohinga', 2], ['burmese-milk-tea', 2]],
+                'items' => [['meeshay', 2], ['falooda', 1]],
             ],
             [
-                'table' => 'A2', 'customer' => 'aye@example.com', 'minutes_ago' => 95,
+                'table' => '2', 'customer' => 'uthant@myanmarrestart.app', 'minutes_ago' => 100,
                 'status' => 'completed', 'payment_status' => 'paid',
-                'redeemed_points' => 10,
-                'items' => [['shan-noodle', 1], ['nan-gyi-thoke', 1], ['lahpet-thoke', 1]],
+                'redeemed_points' => 15,
+                'items' => [['kya-zan-hinga', 1], ['tofu-thoke', 1], ['fresh-avocado-juice', 1]],
             ],
             [
-                'table' => 'B1', 'customer' => null, 'minutes_ago' => 75,
+                'table' => '4', 'customer' => null, 'minutes_ago' => 70,
                 'status' => 'completed', 'payment_status' => 'paid',
-                'items' => [['mohinga', 1], ['lemongrass-cooler', 1]],
+                'items' => [['htamin-jin-thoke', 1], ['tamarind-juice', 1]],
             ],
             [
-                'table' => 'B2', 'customer' => null, 'minutes_ago' => 60,
+                'table' => '5', 'customer' => 'mayin@myanmarrestart.app', 'minutes_ago' => 55,
                 'status' => 'completed', 'payment_status' => 'paid',
-                'items' => [['ohn-no-khao-swe', 2]],
+                'items' => [['nga-baung-cho', 1], ['khao-soi-myanmar', 1], ['htaneet-yei', 2]],
             ],
-            // Served / checkout requested — shows up on cashier as unpaid.
             [
-                'table' => 'A3', 'customer' => 'zaw@example.com', 'minutes_ago' => 40,
+                'table' => '6', 'customer' => null, 'minutes_ago' => 38,
                 'status' => 'checkout_requested', 'payment_status' => 'unpaid',
-                'items' => [['coconut-rice-chicken-curry', 1], ['burmese-milk-tea', 1]],
+                'items' => [['kachin-noodle', 2], ['a-kyaw-sone', 1]],
             ],
             [
-                'table' => 'VIP1', 'customer' => null, 'minutes_ago' => 35,
+                'table' => '8', 'customer' => null, 'minutes_ago' => 25,
                 'status' => 'served', 'payment_status' => 'unpaid',
-                'items' => [['pork-curry-rice', 2], ['sugarcane-juice', 2]],
+                'items' => [['kya-zan-hinga', 2], ['chicken-hti', 1]],
             ],
-            // Kitchen queue — shows up on kitchen page.
             [
-                'table' => 'B1', 'customer' => null, 'minutes_ago' => 18,
+                'table' => '3', 'customer' => null, 'minutes_ago' => 15,
                 'status' => 'preparing', 'payment_status' => 'unpaid',
-                'items' => [['mohinga', 2], ['samusa-thoke', 1]],
+                'items' => [['meeshay', 1], ['myanmar-chicken-soup', 1]],
             ],
             [
-                'table' => 'A1', 'customer' => null, 'minutes_ago' => 7,
+                'table' => '1', 'customer' => null, 'minutes_ago' => 5,
                 'status' => 'submitted', 'payment_status' => 'unpaid',
-                'items' => [['nan-gyi-thoke', 1], ['mont-lone-yay-paw', 2]],
+                'items' => [['kat-kyi-kaik', 1], ['sane-tha-ma-cho', 2]],
             ],
         ],
     ],
 
-    'bangkok-kitchen' => [
-        'name' => 'Bangkok Kitchen',
+    'thai-restaurant' => [
+        'name' => 'Thai Restaurant',
         'phone' => '+66 2 555 7777',
         'address' => '88 Sukhumvit Soi 11, Khlong Toei Nuea, Watthana, Bangkok',
         'opening_hours' => '11:00 - 23:00',
@@ -295,7 +497,7 @@ return [
         'currency' => 'THB',
         'owner' => [
             'name' => 'Somchai Charoenkul',
-            'email' => 'somchai@bangkokkitchen.th',
+            'email' => 'somchai@thairestaurant.app',
             'phone' => '+66 2 555 7777',
             'password' => 'password',
         ],
@@ -317,7 +519,6 @@ return [
             ['key' => 'desserts', 'name' => 'Desserts'],
         ],
         'items' => [
-            // Rice & Mains
             [
                 'slug' => 'pad-krapow-moo',
                 'category' => 'rice',
@@ -350,8 +551,6 @@ return [
                 'price' => 200,
                 'wiki_article' => 'Khao soi',
             ],
-
-            // Noodles
             [
                 'slug' => 'pad-thai',
                 'category' => 'noodles',
@@ -377,8 +576,6 @@ return [
                 'price' => 160,
                 'wiki_article' => 'Kuaitiao ruea',
             ],
-
-            // Soups & Curries
             [
                 'slug' => 'tom-yum-goong',
                 'category' => 'curries',
@@ -419,8 +616,6 @@ return [
                 'price' => 260,
                 'wiki_article' => 'Phanaeng curry',
             ],
-
-            // Salads
             [
                 'slug' => 'som-tum',
                 'category' => 'salads',
@@ -445,8 +640,6 @@ return [
                 'price' => 260,
                 'wiki_article' => 'Seafood salad',
             ],
-
-            // Snacks
             [
                 'slug' => 'por-pia-tod',
                 'category' => 'snacks',
@@ -463,8 +656,6 @@ return [
                 'price' => 140,
                 'wiki_article' => 'Shumai',
             ],
-
-            // Drinks
             [
                 'slug' => 'thai-iced-tea',
                 'category' => 'drinks',
@@ -489,8 +680,6 @@ return [
                 'price' => 100,
                 'wiki_article' => 'Coconut water',
             ],
-
-            // Desserts
             [
                 'slug' => 'mango-sticky-rice',
                 'category' => 'desserts',
@@ -534,19 +723,18 @@ return [
             ],
         ],
         'customers' => [
-            ['name' => 'Nattaya Phromma', 'email' => 'nattaya@example.com', 'phone' => '+66 81 234 5678', 'points' => 85],
-            ['name' => 'Anan Kittisak', 'email' => 'anan@example.com', 'phone' => '+66 82 345 6789', 'points' => 30],
-            ['name' => 'Lalita Wong', 'email' => 'lalita@example.com', 'phone' => '+66 83 456 7890', 'points' => 200],
+            ['name' => 'Nattaya Phromma', 'email' => 'nattaya@thairestaurant.app', 'phone' => '+66 81 234 5678', 'points' => 85],
+            ['name' => 'Anan Kittisak', 'email' => 'anan@thairestaurant.app', 'phone' => '+66 82 345 6789', 'points' => 30],
+            ['name' => 'Lalita Wong', 'email' => 'lalita@thairestaurant.app', 'phone' => '+66 83 456 7890', 'points' => 200],
         ],
         'orders' => [
-            // Completed + paid today
             [
-                'table' => 'T1', 'customer' => 'nattaya@example.com', 'minutes_ago' => 140,
+                'table' => 'T1', 'customer' => 'nattaya@thairestaurant.app', 'minutes_ago' => 140,
                 'status' => 'completed', 'payment_status' => 'paid',
                 'items' => [['tom-yum-goong', 1], ['pad-thai', 1], ['thai-iced-tea', 2]],
             ],
             [
-                'table' => 'T2', 'customer' => 'lalita@example.com', 'minutes_ago' => 110,
+                'table' => 'T2', 'customer' => 'lalita@thairestaurant.app', 'minutes_ago' => 110,
                 'status' => 'completed', 'payment_status' => 'paid',
                 'redeemed_points' => 20,
                 'items' => [['green-curry', 1], ['som-tum', 1], ['mango-sticky-rice', 1]],
@@ -557,22 +745,20 @@ return [
                 'items' => [['pad-krapow-moo', 2], ['coconut-water', 2]],
             ],
             [
-                'table' => 'T4', 'customer' => 'anan@example.com', 'minutes_ago' => 65,
+                'table' => 'T4', 'customer' => 'anan@thairestaurant.app', 'minutes_ago' => 65,
                 'status' => 'completed', 'payment_status' => 'paid',
                 'items' => [['khao-soi-gai', 1], ['lemongrass-tea', 1]],
             ],
-            // Served / checkout requested — cashier sees these as unpaid bills
             [
                 'table' => 'T5', 'customer' => null, 'minutes_ago' => 45,
                 'status' => 'checkout_requested', 'payment_status' => 'unpaid',
                 'items' => [['massaman-beef', 1], ['khao-pad-sapparod', 1]],
             ],
             [
-                'table' => 'VIP1', 'customer' => 'lalita@example.com', 'minutes_ago' => 30,
+                'table' => 'VIP1', 'customer' => 'lalita@thairestaurant.app', 'minutes_ago' => 30,
                 'status' => 'served', 'payment_status' => 'unpaid',
                 'items' => [['panang-neua', 2], ['tom-kha-gai', 1], ['mango-sticky-rice', 2]],
             ],
-            // Kitchen queue
             [
                 'table' => 'T1', 'customer' => null, 'minutes_ago' => 12,
                 'status' => 'preparing', 'payment_status' => 'unpaid',
