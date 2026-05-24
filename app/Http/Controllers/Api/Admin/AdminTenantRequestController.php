@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\Admin\RejectTenantRequest;
 use App\Models\TenantRequest;
 use App\Services\TenantProvisioningService;
 use Illuminate\Http\JsonResponse;
@@ -10,9 +11,13 @@ use Illuminate\Http\Request;
 
 class AdminTenantRequestController extends Controller
 {
+    public function __construct(
+        private readonly TenantProvisioningService $provisioningService,
+    ) {}
+
     public function index(Request $request): JsonResponse
     {
-        $query = TenantRequest::query()->orderBy('created_at', 'desc');
+        $query = TenantRequest::query()->latest();
 
         if ($request->query('status') && in_array($request->query('status'), ['pending', 'approved', 'rejected'])) {
             $query->where('status', $request->query('status'));
@@ -46,7 +51,7 @@ class AdminTenantRequestController extends Controller
         }
 
         try {
-            $result = app(TenantProvisioningService::class)->approveTenantRequest($tenantRequest);
+            $result = $this->provisioningService->approveTenantRequest($tenantRequest);
         } catch (\RuntimeException $e) {
             return response()->json([
                 'status' => 409,
@@ -67,7 +72,7 @@ class AdminTenantRequestController extends Controller
         ]);
     }
 
-    public function reject(Request $request, TenantRequest $tenantRequest): JsonResponse
+    public function reject(RejectTenantRequest $request, TenantRequest $tenantRequest): JsonResponse
     {
         if (! $tenantRequest->isPending()) {
             return response()->json([
@@ -76,9 +81,7 @@ class AdminTenantRequestController extends Controller
             ], 422);
         }
 
-        $data = $request->validate([
-            'reason' => ['nullable', 'string', 'max:500'],
-        ]);
+        $data = $request->validated();
 
         $tenantRequest->update([
             'status' => 'rejected',

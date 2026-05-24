@@ -2,66 +2,49 @@
 
 namespace App\Http\Controllers\Api\Customer;
 
+use App\Actions\ResolveCustomerAction;
 use App\Http\Controllers\Controller;
-use App\Models\Customer;
+use App\Http\Requests\Api\Customer\ApplyPointsRequest;
+use App\Http\Requests\Api\Customer\StoreOrderRequest;
+use App\Http\Requests\Api\Customer\UpdateOrderItemsRequest;
+use App\Models\CustomerProfile;
+use App\Models\MenuItem;
+use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\Payment;
+use App\Models\PaymentSession;
+use App\Models\Profile;
+use App\Models\Settings;
+use App\Models\Table;
+use App\Models\TableSession;
 use App\Services\LoyaltyService;
 use App\Services\OrderFormatHelper;
 use App\Services\OrderPricingService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Laravel\Sanctum\PersonalAccessToken;
 
 class OrderController extends Controller
 {
-    protected function resolveCustomer(Request $request): ?Customer
+    public function __construct(
+        private readonly ResolveCustomerAction $resolveCustomer,
+    ) {}
+
+    public function store(StoreOrderRequest $request, string $tenant_slug, string $qr_token, OrderPricingService $pricing): JsonResponse
     {
-        $user = $request->user();
-        if ($user instanceof Customer) {
-            return $user;
-        }
+        $data = $request->validated();
 
-        $header = $request->bearerToken();
-        if (! $header) {
-            return null;
-        }
-
-        $token = PersonalAccessToken::findToken($header);
-        if (! $token) {
-            return null;
-        }
-
-        $owner = $token->tokenable;
-        if ($owner instanceof Customer && $token->can('customer')) {
-            return $owner;
-        }
-
-        return null;
-    }
-
-    public function store(Request $request, string $tenant_slug, string $qr_token, OrderPricingService $pricing): JsonResponse
-    {
-        $data = $request->validate([
-            'items' => ['required', 'array', 'min:1'],
-            'items.*.menu_item_id' => ['required', 'string'],
-            'items.*.quantity' => ['required', 'integer', 'min:1'],
-            'items.*.instruction' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'table_session_token' => ['sometimes', 'nullable', 'string'],
-        ]);
-
-        $table = DB::table('tables')
-            ->where(function ($q) use ($qr_token) {
-                $q->where('qr_token', $qr_token)
-                    ->orWhere('public_code', $qr_token);
-            })
+        $table = Table::where(function ($q) use ($qr_token) {
+            $q->where('qr_token', $qr_token)
+                ->orWhere('public_code', $qr_token);
+        })
             ->where('status', 'active')
             ->first();
         if (! $table) {
             return response()->json(['status' => 404, 'message' => 'Table not found.'], 404);
         }
 
-        $settings = DB::table('settings')->first();
+        $settings = Settings::first();
         $sessionEnabled = $settings ? (bool) $settings->table_session_enabled : true;
 
         $tableSessionId = null;
@@ -77,8 +60,7 @@ class OrderController extends Controller
                 ], 422);
             }
 
-            $session = DB::table('table_sessions')
-                ->where('token', $sessionToken)
+            $session = TableSession::where('token', $sessionToken)
                 ->where('table_id', $table->id)
                 ->first();
 
@@ -103,7 +85,7 @@ class OrderController extends Controller
             }
 
             if ($session->expires_at && now()->gt($session->expires_at)) {
-                DB::table('table_sessions')->where('id', $session->id)->update(['status' => 'expired', 'updated_at' => now()]);
+                TableSession::where('id', $session->id)->update(['status' => 'expired']);
 
                 return response()->json([
                     'status' => 422,
@@ -112,7 +94,7 @@ class OrderController extends Controller
                 ], 422);
             }
 
-            $sessionTable = DB::table('tables')->where('id', $session->table_id)->first();
+            $sessionTable = Table::where('id', $session->table_id)->first();
             if (! $sessionTable || ! $sessionTable->ordering_enabled) {
                 return response()->json([
                     'status' => 403,
@@ -123,13 +105,12 @@ class OrderController extends Controller
 
             $tableSessionId = $session->id;
 
-            DB::table('table_sessions')->where('id', $session->id)->update([
+            TableSession::where('id', $session->id)->update([
                 'last_activity_at' => now(),
-                'updated_at' => now(),
             ]);
         }
 
-        $authed = $this->resolveCustomer($request);
+        $authed = $this->resolveCustomer->execute($request);
         $customerId = null;
         $customerType = 'guest';
 
@@ -149,14 +130,12 @@ class OrderController extends Controller
 
         $checkoutType = $authed && $settings->allow_member_self_checkout ? 'self_checkout' : 'cashier_checkout';
 
-        $orderId = (string) Str::uuid();
         $orderNumber = 'ORD-'.now()->format('Ymd').'-'.strtoupper(Str::random(6));
 
         $approvalStatus = $customerType === 'guest' ? 'approval_pending' : 'not_required';
 
-        DB::transaction(function () use ($orderId, $orderNumber, $table, $price, $settings, $customerType, $checkoutType, $customerId, $approvalStatus, $tableSessionId) {
-            DB::table('orders')->insert([
-                'id' => $orderId,
+        $order = DB::transaction(function () use ($orderNumber, $table, $price, $settings, $customerType, $checkoutType, $customerId, $approvalStatus, $tableSessionId) {
+            $order = Order::create([
                 'order_number' => $orderNumber,
                 'table_id' => $table->id,
                 'table_session_id' => $tableSessionId,
@@ -175,38 +154,35 @@ class OrderController extends Controller
                 'point_discount_amount' => 0,
                 'payable_amount' => $price['gross_total'],
                 'earned_points' => 0,
-                'created_at' => now(),
-                'updated_at' => now(),
             ]);
 
             foreach ($price['lines'] as $line) {
-                DB::table('order_items')->insert([
-                    'id' => (string) Str::uuid(),
-                    'order_id' => $orderId,
+                OrderItem::create([
+                    'order_id' => $order->id,
                     'menu_item_id' => $line['menu_item_id'],
                     'snapshot_name' => $line['snapshot_name'],
                     'snapshot_price' => $line['snapshot_price'],
                     'quantity' => $line['quantity'],
                     'subtotal_amount' => $line['subtotal_amount'],
                     'instruction' => $line['instruction'],
-                    'created_at' => now(),
-                    'updated_at' => now(),
                 ]);
             }
+
+            return $order;
         });
 
         return response()->json([
             'status' => 201,
             'data' => [
-                'order' => DB::table('orders')->where('id', $orderId)->first(),
-                'items' => DB::table('order_items')->where('order_id', $orderId)->get(),
+                'order' => Order::where('id', $order->id)->first(),
+                'items' => OrderItem::where('order_id', $order->id)->get(),
             ],
         ], 201);
     }
 
-    public function updateItems(Request $request, string $tenant_slug, string $orderId, OrderPricingService $pricing): JsonResponse
+    public function updateItems(UpdateOrderItemsRequest $request, string $tenant_slug, string $orderId, OrderPricingService $pricing): JsonResponse
     {
-        $order = DB::table('orders')->where('id', $orderId)->first();
+        $order = Order::where('id', $orderId)->first();
         if (! $order) {
             return response()->json(['status' => 404, 'message' => 'Order not found.'], 404);
         }
@@ -219,18 +195,12 @@ class OrderController extends Controller
             ], 422);
         }
 
-        $data = $request->validate([
-            'items' => ['required', 'array', 'min:1'],
-            'items.*.menu_item_id' => ['required', 'string'],
-            'items.*.quantity' => ['required', 'integer', 'min:1'],
-            'items.*.instruction' => ['sometimes', 'nullable', 'string', 'max:255'],
-        ]);
+        $data = $request->validated();
 
-        $existingItems = DB::table('order_items')->where('order_id', $orderId)->get()->keyBy('menu_item_id');
+        $existingItems = OrderItem::where('order_id', $orderId)->get()->keyBy('menu_item_id');
 
         $newItemIds = collect($data['items'])->pluck('menu_item_id')->unique()->values()->all();
-        $newMenuItems = DB::table('menu_items')
-            ->whereIn('id', $newItemIds)
+        $newMenuItems = MenuItem::whereIn('id', $newItemIds)
             ->where('status', 'active')
             ->where('is_available', true)
             ->get()
@@ -277,7 +247,7 @@ class OrderController extends Controller
 
         $subtotal = (float) collect($merged)->sum('subtotal_amount');
 
-        $profile = DB::table('profile')->first();
+        $profile = Profile::first();
         $serviceRate = $profile ? (float) ($profile->service_charge_rate ?? 0) : 0.0;
         $taxRate = $profile ? (float) ($profile->tax_rate ?? 0) : 0.0;
         $serviceCharge = round($subtotal * $serviceRate / 100, 2);
@@ -285,11 +255,10 @@ class OrderController extends Controller
         $grossTotal = round($subtotal + $serviceCharge + $tax, 2);
 
         DB::transaction(function () use ($orderId, $merged, $subtotal, $serviceCharge, $tax, $grossTotal) {
-            DB::table('order_items')->where('order_id', $orderId)->delete();
+            OrderItem::where('order_id', $orderId)->delete();
 
             foreach ($merged as $line) {
-                DB::table('order_items')->insert([
-                    'id' => (string) Str::uuid(),
+                OrderItem::create([
                     'order_id' => $orderId,
                     'menu_item_id' => $line['menu_item_id'],
                     'snapshot_name' => $line['snapshot_name'],
@@ -297,43 +266,37 @@ class OrderController extends Controller
                     'quantity' => $line['quantity'],
                     'subtotal_amount' => $line['subtotal_amount'],
                     'instruction' => $line['instruction'],
-                    'created_at' => now(),
-                    'updated_at' => now(),
                 ]);
             }
 
-            DB::table('orders')->where('id', $orderId)->update([
+            Order::where('id', $orderId)->update([
                 'subtotal_amount' => $subtotal,
                 'service_charge_amount' => $serviceCharge,
                 'tax_amount' => $tax,
                 'gross_total_amount' => $grossTotal,
                 'payable_amount' => $grossTotal,
-                'updated_at' => now(),
             ]);
         });
 
         return response()->json([
             'status' => 200,
             'data' => [
-                'order' => DB::table('orders')->where('id', $orderId)->first(),
-                'items' => DB::table('order_items')->where('order_id', $orderId)->get(),
+                'order' => Order::where('id', $orderId)->first(),
+                'items' => OrderItem::where('order_id', $orderId)->get(),
             ],
         ]);
     }
 
-    public function applyPoints(Request $request, string $tenant_slug, string $orderId, LoyaltyService $loyalty): JsonResponse
+    public function applyPoints(ApplyPointsRequest $request, string $tenant_slug, string $orderId, LoyaltyService $loyalty): JsonResponse
     {
-        $data = $request->validate([
-            'customer_id' => ['required', 'string'],
-            'redeem_points' => ['required', 'integer', 'min:1'],
-        ]);
+        $data = $request->validated();
 
-        $order = DB::table('orders')->where('id', $orderId)->first();
+        $order = Order::where('id', $orderId)->first();
         if (! $order || $order->payment_status !== 'unpaid') {
             return response()->json(['status' => 422, 'message' => 'Order not eligible for point redemption.'], 422);
         }
 
-        $customer = DB::table('customer_profiles')->where('customer_id', $data['customer_id'])->first();
+        $customer = CustomerProfile::where('customer_id', $data['customer_id'])->first();
         if (! $customer || $customer->total_points < $data['redeem_points']) {
             return response()->json(['status' => 422, 'message' => 'Not enough points.'], 422);
         }
@@ -341,24 +304,23 @@ class OrderController extends Controller
         $discount = $loyalty->pointDiscountAmount($data['redeem_points']);
         $payable = max(0, (float) $order->gross_total_amount - $discount);
 
-        DB::table('orders')->where('id', $orderId)->update([
+        $order->update([
             'customer_id' => $data['customer_id'],
             'customer_type' => 'member',
             'redeemed_points' => $data['redeem_points'],
             'point_discount_amount' => $discount,
             'payable_amount' => $payable,
-            'updated_at' => now(),
         ]);
 
         return response()->json([
             'status' => 200,
-            'data' => DB::table('orders')->where('id', $orderId)->first(),
+            'data' => Order::where('id', $orderId)->first(),
         ]);
     }
 
     public function status(string $tenant_slug, string $orderId): JsonResponse
     {
-        $order = DB::table('orders')->where('id', $orderId)->first();
+        $order = Order::where('id', $orderId)->first();
         if (! $order) {
             return response()->json(['status' => 404, 'message' => 'Order not found.'], 404);
         }
@@ -370,14 +332,12 @@ class OrderController extends Controller
 
         $formatted['can_update_before_payment'] = $canUpdate;
 
-        $pendingPaymentIds = DB::table('payments')
-            ->where('order_id', $orderId)
+        $pendingPaymentIds = Payment::where('order_id', $orderId)
             ->where('status', 'pending')
             ->pluck('id');
 
         $latestSession = $pendingPaymentIds->isNotEmpty()
-            ? DB::table('payment_sessions')
-                ->whereIn('payment_id', $pendingPaymentIds)
+            ? PaymentSession::whereIn('payment_id', $pendingPaymentIds)
                 ->where('status', 'pending')
                 ->orderByDesc('created_at')
                 ->first()

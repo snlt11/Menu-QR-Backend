@@ -2,18 +2,18 @@
 
 namespace App\Http\Controllers\Api\Tenant;
 
+use App\Http\Controllers\Controller;
+use App\Models\Table;
 use App\Services\TableAvailabilityHelper;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\DB;
 
-class ShopController
+class ShopController extends Controller
 {
     public function show(): JsonResponse
     {
         $tenant = tenant();
 
-        $tables = DB::table('tables')
-            ->where('status', 'active')
+        $tables = Table::where('status', 'active')
             ->orderBy('table_number')
             ->get(['id', 'table_number', 'table_name', 'qr_token']);
 

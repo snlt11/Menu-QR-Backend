@@ -3,6 +3,10 @@
 namespace App\Http\Controllers\Api\Tenant;
 
 use App\Http\Controllers\Controller;
+use App\Models\CustomerProfile;
+use App\Models\LoyaltyPointTransaction;
+use App\Models\Order;
+use App\Models\OrderItem;
 use App\Services\OrderFormatHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -13,45 +17,32 @@ class ReportController extends Controller
     {
         $today = today();
 
-        $todayOrders = DB::table('orders')->whereDate('created_at', $today);
+        $todayOrders = Order::whereDate('created_at', $today);
         $todayPaid = (clone $todayOrders)->where('payment_status', 'paid');
 
-        $unpaidBills = DB::table('orders')->whereIn('payment_status', ['unpaid', 'pending'])->count();
+        $unpaidBills = Order::query()->unpaid()->count();
 
-        $waitingApproval = DB::table('orders')
-            ->where('approval_status', 'approval_pending')
-            ->count();
+        $waitingApproval = Order::where('approval_status', 'approval_pending')->count();
 
-        $kitchenActive = DB::table('orders')
-            ->whereIn('status', ['accepted', 'preparing', 'ready'])
-            ->count();
+        $kitchenActive = Order::whereIn('status', ['accepted', 'preparing', 'ready'])->count();
 
         $guestOrders = (clone $todayOrders)->where('customer_type', 'guest')->count();
         $loggedInOrders = (clone $todayOrders)->where('customer_type', 'member')->count();
 
-        $popularItems = DB::table('order_items')
-            ->select('snapshot_name', DB::raw('SUM(quantity) as units'))
+        $popularItems = OrderItem::select('snapshot_name', DB::raw('SUM(quantity) as units'))
             ->groupBy('snapshot_name')
             ->orderByDesc('units')
             ->limit(5)
             ->get();
 
-        $pointsRedeemedToday = DB::table('loyalty_point_transactions')
-            ->where('type', 'redeem')
+        $pointsRedeemedToday = LoyaltyPointTransaction::where('type', 'redeem')
             ->whereDate('created_at', $today)
             ->sum(DB::raw('ABS(points)'));
 
-        $memberCount = DB::table('customer_profiles')->count();
+        $memberCount = CustomerProfile::count();
 
-        $needsAttention = DB::table('orders')
-            ->where(function ($q) {
-                $q->where('approval_status', 'approval_pending')
-                    ->orWhereIn('payment_status', ['failed', 'expired'])
-                    ->orWhere(function ($sq) {
-                        $sq->where('payment_status', 'unpaid')
-                            ->where('created_at', '<', now()->subMinutes(30));
-                    });
-            })
+        $needsAttention = Order::with('table', 'customer')
+            ->needsAttention()
             ->orderBy('created_at')
             ->limit(20)
             ->get()

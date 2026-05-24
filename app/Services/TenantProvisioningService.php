@@ -10,6 +10,11 @@ use Illuminate\Support\Str;
 
 class TenantProvisioningService
 {
+    public function __construct(
+        private readonly CreateTenantAction $createTenantAction,
+        private readonly OnboardingService $onboardingService,
+    ) {}
+
     public function approveTenantRequest(TenantRequest $request): array
     {
         if (! $request->isPending()) {
@@ -29,7 +34,7 @@ class TenantProvisioningService
                 'password' => $request->password ?? bcrypt(Str::random(32)),
             ];
 
-            $tenant = app(CreateTenantAction::class)->execute(
+            $tenant = $this->createTenantAction->execute(
                 $request->shop_name,
                 $request->requested_slug,
                 $owner,
@@ -41,7 +46,7 @@ class TenantProvisioningService
                 'approved_at' => now(),
             ]);
 
-            $plainKey = app(OnboardingService::class)->generateKey($tenant);
+            $plainKey = $this->onboardingService->generateKey($tenant);
 
             return ['tenant' => $tenant, 'onboarding_key' => $plainKey];
         });

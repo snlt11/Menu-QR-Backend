@@ -4,17 +4,21 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Actions\CreateTenantAction;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\Admin\StoreTenantRequest;
+use App\Http\Requests\Api\Admin\UpdateTenantRequest;
 use App\Models\Tenant;
 use App\Services\OnboardingService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class AdminTenantController extends Controller
 {
+    public function __construct(
+        private readonly OnboardingService $onboardingService,
+    ) {}
+
     private function tenantToArray(Tenant $t): array
     {
         return [
@@ -36,7 +40,7 @@ class AdminTenantController extends Controller
 
     public function index(): JsonResponse
     {
-        $rows = Tenant::orderBy('created_at', 'desc')->get()->map(fn (Tenant $t) => $this->tenantToArray($t));
+        $rows = Tenant::latest()->get()->map(fn (Tenant $t) => $this->tenantToArray($t));
 
         return response()->json(['status' => 200, 'data' => $rows]);
     }
@@ -51,15 +55,9 @@ class AdminTenantController extends Controller
         return response()->json(['status' => 200, 'data' => $this->tenantToArray($tenant)]);
     }
 
-    public function store(Request $request, CreateTenantAction $action): JsonResponse
+    public function store(StoreTenantRequest $request, CreateTenantAction $action): JsonResponse
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'slug' => ['required', 'string', 'max:64', 'regex:/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/', Rule::unique('tenants', 'slug')],
-            'owner_name' => ['required', 'string', 'max:255'],
-            'owner_email' => ['required', 'email', 'max:255'],
-            'owner_phone' => ['nullable', 'string', 'max:32'],
-        ]);
+        $data = $request->validated();
 
         try {
             $tenant = $action->execute($data['name'], $data['slug'], [
@@ -74,7 +72,7 @@ class AdminTenantController extends Controller
                 $tenant->save();
             }
 
-            $plainKey = app(OnboardingService::class)->generateKey($tenant);
+            $plainKey = $this->onboardingService->generateKey($tenant);
         } catch (ValidationException $e) {
             throw $e;
         } catch (\Throwable $e) {
@@ -92,22 +90,14 @@ class AdminTenantController extends Controller
         return response()->json(['status' => 201, 'data' => $result], 201);
     }
 
-    public function update(Request $request, string $id): JsonResponse
+    public function update(UpdateTenantRequest $request, string $id): JsonResponse
     {
         $tenant = Tenant::find($id);
         if (! $tenant) {
             return response()->json(['status' => 404, 'message' => 'Tenant not found.'], 404);
         }
 
-        $data = $request->validate([
-            'name' => ['sometimes', 'required', 'string', 'max:255'],
-            'slug' => ['sometimes', 'required', 'string', 'max:64', 'regex:/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/', Rule::unique('tenants', 'slug')->ignore($tenant->id)],
-            'owner_name' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'owner_email' => ['sometimes', 'nullable', 'email', 'max:255'],
-            'status' => ['sometimes', 'required', 'string', 'in:active,inactive,suspended'],
-            'owner_phone' => ['sometimes', 'nullable', 'string', 'max:50'],
-            'notes' => ['sometimes', 'nullable', 'string', 'max:1000'],
-        ]);
+        $data = $request->validated();
 
         try {
             $tenantData = $tenant->data ?? [];

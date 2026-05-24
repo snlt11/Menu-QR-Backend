@@ -2,14 +2,18 @@
 
 namespace App\Services;
 
+use App\Models\Customer;
+use App\Models\CustomerProfile;
+use App\Models\LoyaltyPointTransaction;
+use App\Models\Order;
+use App\Models\Settings;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class LoyaltyService
 {
     public function pointDiscountAmount(int $redeemPoints): float
     {
-        $settings = DB::table('settings')->first();
+        $settings = Settings::first();
         if (! $settings || ! $settings->points_enabled) {
             return 0.0;
         }
@@ -22,7 +26,7 @@ class LoyaltyService
 
     public function pointsEarnedFor(float $payableAmount): int
     {
-        $settings = DB::table('settings')->first();
+        $settings = Settings::first();
         if (! $settings || ! $settings->points_enabled || $settings->earn_rate_amount <= 0) {
             return 0;
         }
@@ -32,29 +36,24 @@ class LoyaltyService
 
     public function ensureProfileExists(string $customerId): void
     {
-        $exists = DB::table('customer_profiles')
-            ->where('customer_id', $customerId)
-            ->exists();
+        $exists = CustomerProfile::where('customer_id', $customerId)->exists();
 
         if ($exists) {
             return;
         }
 
-        $customer = DB::table('customers')->where('id', $customerId)->first();
+        $customer = Customer::where('id', $customerId)->first();
         if (! $customer) {
             return;
         }
 
-        DB::table('customer_profiles')->insert([
-            'id' => (string) Str::uuid(),
+        CustomerProfile::create([
             'customer_id' => $customerId,
             'name' => $customer->name,
             'phone' => $customer->phone,
             'email' => $customer->email,
             'total_points' => 0,
             'membership_level' => 'basic',
-            'created_at' => now(),
-            'updated_at' => now(),
         ]);
     }
 
@@ -62,17 +61,15 @@ class LoyaltyService
     {
         $this->ensureProfileExists($customerId);
 
-        DB::table('loyalty_point_transactions')->insert([
-            'id' => (string) Str::uuid(),
+        LoyaltyPointTransaction::create([
             'customer_id' => $customerId,
             'order_id' => $orderId,
             'type' => 'redeem',
             'points' => -$points,
             'description' => "Used {$points} points for order {$orderNumber}",
-            'created_at' => now(),
         ]);
-        DB::table('customer_profiles')
-            ->where('customer_id', $customerId)
+
+        CustomerProfile::where('customer_id', $customerId)
             ->decrement('total_points', $points);
     }
 
@@ -84,17 +81,15 @@ class LoyaltyService
 
         $this->ensureProfileExists($customerId);
 
-        DB::table('loyalty_point_transactions')->insert([
-            'id' => (string) Str::uuid(),
+        LoyaltyPointTransaction::create([
             'customer_id' => $customerId,
             'order_id' => $orderId,
             'type' => 'earn',
             'points' => $points,
             'description' => "Earned {$points} points from order {$orderNumber}",
-            'created_at' => now(),
         ]);
-        DB::table('customer_profiles')
-            ->where('customer_id', $customerId)
+
+        CustomerProfile::where('customer_id', $customerId)
             ->increment('total_points', $points);
     }
 
@@ -108,8 +103,7 @@ class LoyaltyService
             return 0;
         }
 
-        $alreadyAwarded = DB::table('loyalty_point_transactions')
-            ->where('order_id', $order->id)
+        $alreadyAwarded = LoyaltyPointTransaction::where('order_id', $order->id)
             ->where('type', 'earn')
             ->exists();
 
@@ -117,7 +111,7 @@ class LoyaltyService
             return 0;
         }
 
-        $settings = DB::table('settings')->first();
+        $settings = Settings::first();
         if (! $settings || ! $settings->points_enabled) {
             return 0;
         }
@@ -136,50 +130,42 @@ class LoyaltyService
         }
 
         return DB::transaction(function () use ($order, $earned) {
-            $profile = DB::table('customer_profiles')
-                ->where('customer_id', $order->customer_id)
+            $profile = CustomerProfile::where('customer_id', $order->customer_id)
                 ->lockForUpdate()
                 ->first();
 
             if (! $profile) {
-                $customer = DB::table('customers')->where('id', $order->customer_id)->first();
+                $customer = Customer::where('id', $order->customer_id)->first();
                 if (! $customer) {
                     return 0;
                 }
 
-                DB::table('customer_profiles')->insert([
-                    'id' => (string) Str::uuid(),
+                CustomerProfile::create([
                     'customer_id' => $order->customer_id,
                     'name' => $customer->name,
                     'phone' => $customer->phone,
                     'email' => $customer->email,
                     'total_points' => 0,
                     'membership_level' => 'basic',
-                    'created_at' => now(),
-                    'updated_at' => now(),
                 ]);
 
-                $profile = DB::table('customer_profiles')
-                    ->where('customer_id', $order->customer_id)
+                $profile = CustomerProfile::where('customer_id', $order->customer_id)
                     ->lockForUpdate()
                     ->first();
             }
 
-            DB::table('loyalty_point_transactions')->insert([
-                'id' => (string) Str::uuid(),
+            LoyaltyPointTransaction::create([
                 'customer_id' => $order->customer_id,
                 'order_id' => $order->id,
                 'type' => 'earn',
                 'points' => $earned,
                 'description' => "Earned from order {$order->order_number}",
-                'created_at' => now(),
             ]);
 
-            DB::table('customer_profiles')
-                ->where('customer_id', $order->customer_id)
+            CustomerProfile::where('customer_id', $order->customer_id)
                 ->increment('total_points', $earned);
 
-            DB::table('orders')->where('id', $order->id)->update([
+            Order::where('id', $order->id)->update([
                 'earned_points' => $earned,
             ]);
 

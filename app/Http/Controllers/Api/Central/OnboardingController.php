@@ -3,21 +3,18 @@
 namespace App\Http\Controllers\Api\Central;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\Central\CompleteOnboardingRequest;
+use App\Http\Requests\Api\Central\VerifyOnboardingKeyRequest;
 use App\Services\OnboardingService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
 class OnboardingController extends Controller
 {
-    public function verify(Request $request, OnboardingService $service): JsonResponse
+    public function verify(VerifyOnboardingKeyRequest $request, OnboardingService $service): JsonResponse
     {
-        $request->validate([
-            'onboarding_key' => ['required', 'string'],
-        ]);
-
         try {
-            $tenant = $service->verifyKey($request->input('onboarding_key'));
+            $tenant = $service->verifyKey($request->validated('onboarding_key'));
         } catch (ValidationException $e) {
             throw $e;
         } catch (\Throwable $e) {
@@ -38,17 +35,12 @@ class OnboardingController extends Controller
         ]);
     }
 
-    public function complete(Request $request, OnboardingService $service): JsonResponse
+    public function complete(CompleteOnboardingRequest $request, OnboardingService $service): JsonResponse
     {
-        $request->validate([
-            'onboarding_key' => ['required', 'string'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-        ]);
-
         try {
             $tenant = $service->completeOnboarding(
-                $request->input('onboarding_key'),
-                $request->input('password'),
+                $request->validated('onboarding_key'),
+                $request->validated('password'),
             );
         } catch (ValidationException $e) {
             throw $e;

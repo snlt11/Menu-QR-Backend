@@ -3,8 +3,13 @@
 namespace App\Http\Controllers\Api\Tenant;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\Tenant\AttachCollectionItemRequest;
+use App\Http\Requests\Api\Tenant\ReorderRequest;
+use App\Http\Requests\Api\Tenant\StoreMenuCollectionRequest;
+use App\Http\Requests\Api\Tenant\UpdateMenuCollectionRequest;
+use App\Models\MenuCollection;
+use App\Models\MenuCollectionItem;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -12,30 +17,18 @@ class MenuCollectionController extends Controller
 {
     public function index(): JsonResponse
     {
-        $rows = DB::table('menu_collections')->orderBy('display_order')->get();
+        $rows = MenuCollection::orderBy('display_order')->get();
 
         return response()->json(['status' => 200, 'data' => $rows]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreMenuCollectionRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'description' => ['sometimes', 'nullable', 'string'],
-            'layout_type' => ['required', 'string', 'in:horizontal_cards,grid_cards,large_featured_cards,compact_list,horizontal_scroll,large_featured,split_feature,mini_cards'],
-            'display_order' => ['sometimes', 'integer'],
-            'status' => ['sometimes', 'string', 'in:draft,active,inactive,expired'],
-            'starts_at' => ['sometimes', 'nullable', 'date'],
-            'ends_at' => ['sometimes', 'nullable', 'date'],
-        ]);
-
+        $data = $request->validated();
         $data['layout_type'] = $this->normalizeLayout($data['layout_type']);
-
         $slug = $this->uniqueSlug(Str::slug($data['name']));
 
-        $id = (string) Str::uuid();
-        DB::table('menu_collections')->insert([
-            'id' => $id,
+        $collection = MenuCollection::create([
             'name' => $data['name'],
             'slug' => $slug,
             'description' => $data['description'] ?? null,
@@ -44,19 +37,17 @@ class MenuCollectionController extends Controller
             'status' => $data['status'] ?? 'draft',
             'starts_at' => $data['starts_at'] ?? null,
             'ends_at' => $data['ends_at'] ?? null,
-            'created_at' => now(),
-            'updated_at' => now(),
         ]);
 
         return response()->json([
             'status' => 201,
-            'data' => DB::table('menu_collections')->where('id', $id)->first(),
+            'data' => MenuCollection::where('id', $collection->id)->first(),
         ], 201);
     }
 
     public function show(string $tenant_slug, string $id): JsonResponse
     {
-        $collection = DB::table('menu_collections')->where('id', $id)->first();
+        $collection = MenuCollection::where('id', $id)->first();
         if (! $collection) {
             return response()->json(['status' => 404, 'message' => 'Collection not found.'], 404);
         }
@@ -88,22 +79,14 @@ class MenuCollectionController extends Controller
         ]);
     }
 
-    public function update(Request $request, string $tenant_slug, string $id): JsonResponse
+    public function update(UpdateMenuCollectionRequest $request, string $tenant_slug, string $id): JsonResponse
     {
-        $row = DB::table('menu_collections')->where('id', $id)->first();
+        $row = MenuCollection::where('id', $id)->first();
         if (! $row) {
             return response()->json(['status' => 404, 'message' => 'Collection not found.'], 404);
         }
 
-        $data = $request->validate([
-            'name' => ['sometimes', 'string', 'max:255'],
-            'description' => ['sometimes', 'nullable', 'string'],
-            'layout_type' => ['sometimes', 'string', 'in:horizontal_cards,grid_cards,large_featured_cards,compact_list,horizontal_scroll,large_featured,split_feature,mini_cards'],
-            'display_order' => ['sometimes', 'integer'],
-            'status' => ['sometimes', 'string', 'in:draft,active,inactive,expired'],
-            'starts_at' => ['sometimes', 'nullable', 'date'],
-            'ends_at' => ['sometimes', 'nullable', 'date'],
-        ]);
+        $data = $request->validated();
 
         if (isset($data['layout_type'])) {
             $data['layout_type'] = $this->normalizeLayout($data['layout_type']);
@@ -113,109 +96,88 @@ class MenuCollectionController extends Controller
             $data['slug'] = $this->uniqueSlug(Str::slug($data['name']), $id);
         }
 
-        DB::table('menu_collections')->where('id', $id)->update($data + ['updated_at' => now()]);
+        $row->update($data);
 
         return response()->json([
             'status' => 200,
-            'data' => DB::table('menu_collections')->where('id', $id)->first(),
+            'data' => MenuCollection::where('id', $id)->first(),
         ]);
     }
 
     public function destroy(string $tenant_slug, string $id): JsonResponse
     {
-        $row = DB::table('menu_collections')->where('id', $id)->first();
+        $row = MenuCollection::where('id', $id)->first();
         if (! $row) {
             return response()->json(['status' => 404, 'message' => 'Collection not found.'], 404);
         }
 
-        DB::table('menu_collections')->where('id', $id)->delete();
+        $row->delete();
 
         return response()->json(['status' => 200, 'data' => ['id' => $id]]);
     }
 
-    public function reorder(Request $request): JsonResponse
+    public function reorder(ReorderRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'order' => ['required', 'array', 'min:1'],
-            'order.*.id' => ['required', 'string', 'exists:menu_collections,id'],
-            'order.*.display_order' => ['required', 'integer'],
-        ]);
+        $data = $request->validated();
 
         foreach ($data['order'] as $item) {
-            DB::table('menu_collections')
-                ->where('id', $item['id'])
-                ->update(['display_order' => $item['display_order'], 'updated_at' => now()]);
+            MenuCollection::where('id', $item['id'])->update([
+                'display_order' => $item['display_order'],
+            ]);
         }
 
         return response()->json(['status' => 200, 'data' => $data['order']]);
     }
 
-    public function attachItem(Request $request, string $tenant_slug, string $id): JsonResponse
+    public function attachItem(AttachCollectionItemRequest $request, string $tenant_slug, string $id): JsonResponse
     {
-        $collection = DB::table('menu_collections')->where('id', $id)->first();
+        $collection = MenuCollection::where('id', $id)->first();
         if (! $collection) {
             return response()->json(['status' => 404, 'message' => 'Collection not found.'], 404);
         }
 
-        $data = $request->validate([
-            'menu_item_id' => ['required', 'string', 'exists:menu_items,id'],
-            'sort_order' => ['sometimes', 'integer'],
-            'is_featured' => ['sometimes', 'boolean'],
-        ]);
+        $data = $request->validated();
 
-        $exists = DB::table('menu_collection_items')
-            ->where('menu_collection_id', $id)
+        $exists = MenuCollectionItem::where('menu_collection_id', $id)
             ->where('menu_item_id', $data['menu_item_id'])
             ->exists();
         if ($exists) {
             return response()->json(['status' => 409, 'message' => 'Item already attached to this collection.'], 409);
         }
 
-        $pivotId = (string) Str::uuid();
-        DB::table('menu_collection_items')->insert([
-            'id' => $pivotId,
+        $pivot = MenuCollectionItem::create([
             'menu_collection_id' => $id,
             'menu_item_id' => $data['menu_item_id'],
             'sort_order' => $data['sort_order'] ?? 0,
             'is_featured' => $data['is_featured'] ?? false,
-            'created_at' => now(),
-            'updated_at' => now(),
         ]);
 
         return response()->json([
             'status' => 201,
-            'data' => DB::table('menu_collection_items')->where('id', $pivotId)->first(),
+            'data' => MenuCollectionItem::where('id', $pivot->id)->first(),
         ], 201);
     }
 
     public function detachItem(string $tenant_slug, string $id, string $itemId): JsonResponse
     {
-        $row = DB::table('menu_collection_items')
-            ->where('menu_collection_id', $id)
-            ->where('id', $itemId)
-            ->first();
+        $row = MenuCollectionItem::where('menu_collection_id', $id)->where('id', $itemId)->first();
         if (! $row) {
             return response()->json(['status' => 404, 'message' => 'Pivot row not found.'], 404);
         }
 
-        DB::table('menu_collection_items')->where('id', $itemId)->delete();
+        $row->delete();
 
         return response()->json(['status' => 200, 'data' => ['id' => $itemId]]);
     }
 
-    public function reorderItems(Request $request, string $tenant_slug, string $id): JsonResponse
+    public function reorderItems(ReorderRequest $request, string $tenant_slug, string $id): JsonResponse
     {
-        $data = $request->validate([
-            'order' => ['required', 'array', 'min:1'],
-            'order.*.id' => ['required', 'string', 'exists:menu_collection_items,id'],
-            'order.*.sort_order' => ['required', 'integer'],
-        ]);
+        $data = $request->validated();
 
         foreach ($data['order'] as $item) {
-            DB::table('menu_collection_items')
-                ->where('id', $item['id'])
+            MenuCollectionItem::where('id', $item['id'])
                 ->where('menu_collection_id', $id)
-                ->update(['sort_order' => $item['sort_order'], 'updated_at' => now()]);
+                ->update(['sort_order' => $item['sort_order']]);
         }
 
         return response()->json(['status' => 200, 'data' => $data['order']]);
@@ -235,7 +197,7 @@ class MenuCollectionController extends Controller
     {
         $slug = $base;
         $i = 2;
-        while (DB::table('menu_collections')->where('slug', $slug)->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))->exists()) {
+        while (MenuCollection::where('slug', $slug)->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))->exists()) {
             $slug = $base.'-'.$i;
             $i++;
         }

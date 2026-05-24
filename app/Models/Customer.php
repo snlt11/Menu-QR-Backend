@@ -2,10 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
 
+#[Fillable(['name', 'email', 'phone', 'password', 'status'])]
+#[Hidden(['password'])]
 class Customer extends Authenticatable
 {
     use HasApiTokens, HasUuids;
@@ -18,18 +23,6 @@ class Customer extends Authenticatable
 
     public $incrementing = false;
 
-    protected $fillable = [
-        'name',
-        'email',
-        'phone',
-        'password',
-        'status',
-    ];
-
-    protected $hidden = [
-        'password',
-    ];
-
     protected function casts(): array
     {
         return [
@@ -37,7 +30,7 @@ class Customer extends Authenticatable
         ];
     }
 
-    public function profile()
+    public function profile(): HasOne
     {
         return $this->hasOne(CustomerProfile::class, 'customer_id');
     }

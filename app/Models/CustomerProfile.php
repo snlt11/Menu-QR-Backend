@@ -2,9 +2,12 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+#[Fillable(['customer_id', 'name', 'phone', 'email', 'total_points', 'membership_level'])]
 class CustomerProfile extends Model
 {
     use HasUuids;
@@ -17,20 +20,16 @@ class CustomerProfile extends Model
 
     public $incrementing = false;
 
-    protected $fillable = [
-        'customer_id',
-        'name',
-        'phone',
-        'email',
-        'total_points',
-        'membership_level',
-    ];
-
     protected function casts(): array
     {
         return [
             'total_points' => 'integer',
         ];
+    }
+
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
     }
 
     public function newQuery()

@@ -3,25 +3,19 @@
 namespace App\Http\Controllers\Api\Customer;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\Customer\LoginCustomerRequest;
+use App\Http\Requests\Api\Customer\RegisterCustomerRequest;
 use App\Models\Customer;
+use App\Models\CustomerProfile;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
 
 class CustomerAuthController extends Controller
 {
-    public function register(Request $request): JsonResponse
+    public function register(RegisterCustomerRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'phone' => ['required', 'string', 'max:30', Rule::unique('customers', 'phone')],
-            'email' => ['sometimes', 'nullable', 'email', 'max:255', Rule::unique('customers', 'email')],
-            'password' => ['required', 'string', Password::min(6), 'confirmed'],
-        ]);
+        $data = $request->validated();
 
         $customer = Customer::create([
             'name' => $data['name'],
@@ -31,16 +25,13 @@ class CustomerAuthController extends Controller
             'status' => 'active',
         ]);
 
-        DB::table('customer_profiles')->insert([
-            'id' => (string) Str::uuid(),
+        CustomerProfile::create([
             'customer_id' => $customer->id,
             'name' => $customer->name,
             'phone' => $customer->phone,
             'email' => $customer->email,
             'total_points' => 0,
             'membership_level' => 'basic',
-            'created_at' => now(),
-            'updated_at' => now(),
         ]);
 
         $token = $customer->createToken('customer', ['customer'])->plainTextToken;
@@ -59,13 +50,9 @@ class CustomerAuthController extends Controller
         ], 201);
     }
 
-    public function login(Request $request): JsonResponse
+    public function login(LoginCustomerRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'phone' => ['required_without:email', 'string', 'max:30'],
-            'email' => ['required_without:phone', 'email', 'max:255'],
-            'password' => ['required', 'string'],
-        ]);
+        $data = $request->validated();
 
         $query = Customer::where('status', 'active');
 
@@ -83,23 +70,16 @@ class CustomerAuthController extends Controller
 
         $token = $customer->createToken('customer', ['customer'])->plainTextToken;
 
-        $profileExists = DB::table('customer_profiles')
-            ->where('customer_id', $customer->id)
-            ->exists();
-
-        if (! $profileExists) {
-            DB::table('customer_profiles')->insert([
-                'id' => (string) Str::uuid(),
-                'customer_id' => $customer->id,
+        CustomerProfile::firstOrCreate(
+            ['customer_id' => $customer->id],
+            [
                 'name' => $customer->name,
                 'phone' => $customer->phone,
                 'email' => $customer->email,
                 'total_points' => 0,
                 'membership_level' => 'basic',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        }
+            ],
+        );
 
         return response()->json([
             'status' => 200,
@@ -119,9 +99,7 @@ class CustomerAuthController extends Controller
     {
         $customer = $request->user();
 
-        $profile = DB::table('customer_profiles')
-            ->where('customer_id', $customer->id)
-            ->first();
+        $profile = CustomerProfile::where('customer_id', $customer->id)->first();
 
         return response()->json([
             'status' => 200,

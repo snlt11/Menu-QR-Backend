@@ -2,8 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\MenuItem;
+use App\Models\Profile;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 class OrderPricingService
 {
@@ -13,13 +14,12 @@ class OrderPricingService
      */
     public function calculate(array $items): array
     {
-        $profile = DB::table('profile')->first();
+        $profile = Profile::first();
         $serviceRate = $profile ? (float) ($profile->service_charge_rate ?? 0) : 0.0;
         $taxRate = $profile ? (float) ($profile->tax_rate ?? 0) : 0.0;
 
         $ids = collect($items)->pluck('menu_item_id')->all();
-        $menuItems = DB::table('menu_items')
-            ->whereIn('id', $ids)
+        $menuItems = MenuItem::whereIn('id', $ids)
             ->where('status', 'active')
             ->where('is_available', true)
             ->get()
@@ -32,6 +32,7 @@ class OrderPricingService
             }
             $qty = max(1, (int) $line['quantity']);
             $unit = (float) $mi->price;
+
             return [
                 'menu_item_id' => $mi->id,
                 'snapshot_name' => $mi->name,

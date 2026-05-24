@@ -3,10 +3,14 @@
 namespace App\Http\Controllers\Api\Customer;
 
 use App\Http\Controllers\Controller;
+use App\Models\CustomerProfile;
+use App\Models\LoyaltyPointTransaction;
+use App\Models\Order;
+use App\Models\Profile;
+use App\Models\Settings;
 use App\Services\OrderFormatHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class CustomerOrderController extends Controller
 {
@@ -17,8 +21,7 @@ class CustomerOrderController extends Controller
         $page = max(1, (int) $request->query('page', 1));
         $perPage = min(50, max(1, (int) $request->query('per_page', 15)));
 
-        $query = DB::table('orders')
-            ->where('customer_id', $customer->id)
+        $query = Order::where('customer_id', $customer->id)
             ->orderByDesc('created_at');
 
         $total = $query->count();
@@ -47,18 +50,15 @@ class CustomerOrderController extends Controller
     {
         $customer = $request->user();
 
-        $profile = DB::table('customer_profiles')
-            ->where('customer_id', $customer->id)
-            ->first();
+        $profile = CustomerProfile::where('customer_id', $customer->id)->first();
 
-        $settings = DB::table('settings')->first();
-        $shopProfile = DB::table('profile')->first();
+        $settings = Settings::first();
+        $shopProfile = Profile::first();
 
         $page = max(1, (int) $request->query('page', 1));
         $perPage = min(50, max(1, (int) $request->query('per_page', 20)));
 
-        $txQuery = DB::table('loyalty_point_transactions')
-            ->where('customer_id', $customer->id)
+        $txQuery = LoyaltyPointTransaction::where('customer_id', $customer->id)
             ->orderByDesc('created_at');
 
         $totalTx = $txQuery->count();
@@ -103,7 +103,7 @@ class CustomerOrderController extends Controller
     {
         $customer = $request->user();
 
-        $order = DB::table('orders')->where('id', $orderId)->first();
+        $order = Order::where('id', $orderId)->first();
         if (! $order) {
             return response()->json(['status' => 404, 'message' => 'Order not found.'], 404);
         }
@@ -111,9 +111,7 @@ class CustomerOrderController extends Controller
         if ($order->customer_id === $customer->id) {
             return response()->json([
                 'status' => 200,
-                'data' => OrderFormatHelper::format(
-                    DB::table('orders')->where('id', $orderId)->first()
-                ),
+                'data' => OrderFormatHelper::format($order),
             ]);
         }
 
@@ -121,18 +119,15 @@ class CustomerOrderController extends Controller
             return response()->json(['status' => 403, 'message' => 'Order belongs to another customer.'], 403);
         }
 
-        DB::table('orders')->where('id', $orderId)->update([
+        $order->update([
             'customer_id' => $customer->id,
             'customer_type' => 'member',
             'approval_status' => $order->approval_status === 'approval_pending' ? 'not_required' : $order->approval_status,
-            'updated_at' => now(),
         ]);
 
         return response()->json([
             'status' => 200,
-            'data' => OrderFormatHelper::format(
-                DB::table('orders')->where('id', $orderId)->first()
-            ),
+            'data' => OrderFormatHelper::format($order->fresh()),
         ]);
     }
 }

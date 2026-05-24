@@ -3,17 +3,19 @@
 namespace App\Http\Controllers\Api\Tenant;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\Tenant\StoreTableRequest;
+use App\Http\Requests\Api\Tenant\UpdateTableRequest;
+use App\Models\Table;
+use App\Models\TableSession;
 use App\Services\TableAvailabilityHelper;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class TableController extends Controller
 {
     public function index(): JsonResponse
     {
-        $rows = DB::table('tables')->orderBy('table_number')->get();
+        $rows = Table::orderBy('table_number')->get();
         $enriched = TableAvailabilityHelper::enrichCollection($rows);
         $enriched = collect($enriched)->map(fn ($t) => $t + [
             'qr_url' => $this->buildQrUrl($t['public_code'] ?? $t['qr_token']),
@@ -22,119 +24,103 @@ class TableController extends Controller
         return response()->json(['status' => 200, 'data' => $enriched]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreTableRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'table_number' => ['required', 'string', 'max:32'],
-            'table_name' => ['nullable', 'string', 'max:255'],
-            'status' => ['sometimes', 'string', 'in:active,inactive'],
-        ]);
+        $data = $request->validated();
 
         $token = $this->generateUniqueToken();
         $publicCode = $this->generateUniquePublicCode();
 
-        $id = (string) Str::uuid();
-        DB::table('tables')->insert([
-            'id' => $id,
+        $table = Table::create([
             'table_number' => $data['table_number'],
             'table_name' => $data['table_name'] ?? null,
             'qr_token' => $token,
             'public_code' => $publicCode,
             'ordering_enabled' => true,
             'status' => $data['status'] ?? 'active',
-            'created_at' => now(),
-            'updated_at' => now(),
         ]);
 
-        $row = DB::table('tables')->where('id', $id)->first();
+        $row = Table::where('id', $table->id)->first();
 
         return response()->json([
             'status' => 201,
-            'data' => (array) $row + ['qr_url' => $this->buildQrUrl($row->public_code)],
+            'data' => $row->toArray() + ['qr_url' => $this->buildQrUrl($row->public_code)],
         ], 201);
     }
 
     public function show(string $tenant_slug, string $id): JsonResponse
     {
-        $row = DB::table('tables')->where('id', $id)->first();
+        $row = Table::where('id', $id)->first();
         if (! $row) {
             return response()->json(['status' => 404, 'message' => 'Table not found.'], 404);
         }
 
         return response()->json([
             'status' => 200,
-            'data' => (array) $row + ['qr_url' => $this->buildQrUrl($row->public_code)],
+            'data' => $row->toArray() + ['qr_url' => $this->buildQrUrl($row->public_code)],
         ]);
     }
 
-    public function update(Request $request, string $tenant_slug, string $id): JsonResponse
+    public function update(UpdateTableRequest $request, string $tenant_slug, string $id): JsonResponse
     {
-        $row = DB::table('tables')->where('id', $id)->first();
+        $row = Table::where('id', $id)->first();
         if (! $row) {
             return response()->json(['status' => 404, 'message' => 'Table not found.'], 404);
         }
 
-        $data = $request->validate([
-            'table_number' => ['sometimes', 'string', 'max:32'],
-            'table_name' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'status' => ['sometimes', 'string', 'in:active,inactive'],
-            'ordering_enabled' => ['sometimes', 'boolean'],
-        ]);
-
-        DB::table('tables')->where('id', $id)->update($data + ['updated_at' => now()]);
-
-        $row = DB::table('tables')->where('id', $id)->first();
+        $row->update($request->validated());
+        $row = $row->fresh();
 
         return response()->json([
             'status' => 200,
-            'data' => (array) $row + ['qr_url' => $this->buildQrUrl($row->public_code)],
+            'data' => $row->toArray() + ['qr_url' => $this->buildQrUrl($row->public_code)],
         ]);
     }
 
     public function destroy(string $tenant_slug, string $id): JsonResponse
     {
-        $row = DB::table('tables')->where('id', $id)->first();
+        $row = Table::where('id', $id)->first();
         if (! $row) {
             return response()->json(['status' => 404, 'message' => 'Table not found.'], 404);
         }
 
-        DB::table('tables')->where('id', $id)->delete();
+        $row->delete();
 
         return response()->json(['status' => 200, 'data' => ['id' => $id]]);
     }
 
     public function toggleOrdering(string $tenant_slug, string $id): JsonResponse
     {
-        $row = DB::table('tables')->where('id', $id)->first();
+        $row = Table::where('id', $id)->first();
         if (! $row) {
             return response()->json(['status' => 404, 'message' => 'Table not found.'], 404);
         }
 
-        $newValue = ! ((bool) $row->ordering_enabled);
-        DB::table('tables')->where('id', $id)->update([
-            'ordering_enabled' => $newValue,
-            'updated_at' => now(),
-        ]);
-
-        $row = DB::table('tables')->where('id', $id)->first();
+        $row->update(['ordering_enabled' => ! $row->ordering_enabled]);
+        $row = $row->fresh();
 
         return response()->json([
             'status' => 200,
-            'data' => (array) $row + ['qr_url' => $this->buildQrUrl($row->public_code)],
+            'data' => $row->toArray() + ['qr_url' => $this->buildQrUrl($row->public_code)],
         ]);
     }
 
     public function blockSessions(string $tenant_slug, string $id): JsonResponse
     {
-        $row = DB::table('tables')->where('id', $id)->first();
+        $row = Table::where('id', $id)->first();
         if (! $row) {
             return response()->json(['status' => 404, 'message' => 'Table not found.'], 404);
         }
 
-        $count = DB::table('table_sessions')
-            ->where('table_id', $id)
+        $sessions = TableSession::where('table_id', $id)
             ->where('status', 'active')
-            ->update(['status' => 'blocked', 'updated_at' => now()]);
+            ->get();
+
+        $count = $sessions->count();
+
+        TableSession::where('table_id', $id)
+            ->where('status', 'active')
+            ->each(fn ($s) => $s->update(['status' => 'blocked']));
 
         return response()->json([
             'status' => 200,
@@ -144,22 +130,17 @@ class TableController extends Controller
 
     public function resetQrCode(string $tenant_slug, string $id): JsonResponse
     {
-        $row = DB::table('tables')->where('id', $id)->first();
+        $row = Table::where('id', $id)->first();
         if (! $row) {
             return response()->json(['status' => 404, 'message' => 'Table not found.'], 404);
         }
 
-        $newCode = $this->generateUniquePublicCode();
-        DB::table('tables')->where('id', $id)->update([
-            'public_code' => $newCode,
-            'updated_at' => now(),
-        ]);
-
-        $row = DB::table('tables')->where('id', $id)->first();
+        $row->update(['public_code' => $this->generateUniquePublicCode()]);
+        $row = $row->fresh();
 
         return response()->json([
             'status' => 200,
-            'data' => (array) $row + ['qr_url' => $this->buildQrUrl($row->public_code)],
+            'data' => $row->toArray() + ['qr_url' => $this->buildQrUrl($row->public_code)],
         ]);
     }
 
@@ -167,7 +148,7 @@ class TableController extends Controller
     {
         for ($i = 0; $i < 5; $i++) {
             $token = 'tbl_'.Str::lower(Str::random(10));
-            if (! DB::table('tables')->where('qr_token', $token)->exists()) {
+            if (! Table::where('qr_token', $token)->exists()) {
                 return $token;
             }
         }
@@ -179,7 +160,7 @@ class TableController extends Controller
     {
         for ($i = 0; $i < 5; $i++) {
             $code = 'tbl_'.Str::lower(Str::random(10));
-            if (! DB::table('tables')->where('public_code', $code)->exists()) {
+            if (! Table::where('public_code', $code)->exists()) {
                 return $code;
             }
         }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\Admin\AdminLoginRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -10,12 +11,9 @@ use Illuminate\Support\Facades\Hash;
 
 class AdminAuthController extends Controller
 {
-    public function login(Request $request): JsonResponse
+    public function login(AdminLoginRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required', 'string'],
-        ]);
+        $data = $request->validated();
 
         $user = User::where('email', $data['email'])
             ->where('global_role', 'admin')
@@ -49,6 +47,7 @@ class AdminAuthController extends Controller
     public function me(Request $request): JsonResponse
     {
         $user = $request->user();
+
         return response()->json([
             'status' => 200,
             'data' => [
@@ -66,6 +65,7 @@ class AdminAuthController extends Controller
         if ($token) {
             $token->delete();
         }
+
         return response()->json(['status' => 200, 'message' => 'Logged out.']);
     }
 }

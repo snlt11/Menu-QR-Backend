@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\Order;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 class TableAvailabilityHelper
 {
@@ -13,8 +13,7 @@ class TableAvailabilityHelper
             return collect();
         }
 
-        return DB::table('orders')
-            ->select(['id', 'order_number', 'table_id'])
+        return Order::select(['id', 'order_number', 'table_id'])
             ->whereIn('table_id', $tableIds)
             ->whereNotIn('status', ['cancelled', 'rejected'])
             ->where(function ($q) {
@@ -27,7 +26,7 @@ class TableAvailabilityHelper
             ->keyBy('table_id');
     }
 
-    public static function enrichTable(object $table, ?object $activeOrder = null): array
+    public static function enrichTable(object $table, ?Order $activeOrder = null): array
     {
         $isOccupied = $activeOrder !== null;
 

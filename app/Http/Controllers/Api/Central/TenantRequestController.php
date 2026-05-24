@@ -3,23 +3,19 @@
 namespace App\Http\Controllers\Api\Central;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\Central\StoreTenantRequestRequest;
 use App\Models\Tenant;
 use App\Models\TenantRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class TenantRequestController extends Controller
 {
-    public function store(Request $request): JsonResponse
+    public function store(StoreTenantRequestRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'shop_name' => ['required', 'string', 'max:255'],
-            'owner_name' => ['required', 'string', 'max:255'],
-            'owner_email' => ['required', 'email', 'max:255'],
-            'owner_phone' => ['nullable', 'string', 'max:50'],
-        ]);
-
+        $data = $request->validated();
         $slug = $this->normalizeSlug($data['shop_name']);
 
         if ($slug === '') {
@@ -71,7 +67,7 @@ class TenantRequestController extends Controller
 
     private function normalizeSlug(string $input): string
     {
-        $slug = strtolower(trim($input));
+        $slug = Str::lower(trim($input));
         $slug = preg_replace('/[^a-z0-9]+/', '-', $slug);
         $slug = preg_replace('/-+/', '-', $slug);
         $slug = preg_replace('/^-+|-+$/', '', $slug);

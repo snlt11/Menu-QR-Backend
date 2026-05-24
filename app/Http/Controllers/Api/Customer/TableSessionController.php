@@ -2,30 +2,29 @@
 
 namespace App\Http\Controllers\Api\Customer;
 
+use App\Actions\ResolveCustomerAction;
 use App\Http\Controllers\Controller;
-use App\Models\Customer;
+use App\Http\Requests\Api\Customer\StoreTableSessionRequest;
+use App\Models\Settings;
+use App\Models\Table;
 use App\Models\TableSession;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Laravel\Sanctum\PersonalAccessToken;
 
 class TableSessionController extends Controller
 {
-    public function store(Request $request): JsonResponse
+    public function __construct(
+        private readonly ResolveCustomerAction $resolveCustomer,
+    ) {}
+
+    public function store(StoreTableSessionRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'public_code' => ['required', 'string'],
-        ]);
+        $code = $request->validated('public_code');
 
-        $code = $data['public_code'];
-
-        $table = DB::table('tables')
-            ->where(function ($q) use ($code) {
-                $q->where('public_code', $code)
-                    ->orWhere('qr_token', $code);
-            })
+        $table = Table::where(function ($q) use ($code) {
+            $q->where('public_code', $code)
+                ->orWhere('qr_token', $code);
+        })
             ->where('status', 'active')
             ->first();
 
@@ -45,11 +44,10 @@ class TableSessionController extends Controller
             ], 403);
         }
 
-        $settings = DB::table('settings')->first();
-
+        $settings = Settings::first();
         $sessionEnabled = $settings ? (bool) $settings->table_session_enabled : true;
 
-        $customerId = $this->resolveCustomerId($request);
+        $customerId = $this->resolveCustomer->resolveId($request);
 
         if (! $sessionEnabled) {
             return response()->json([
@@ -71,9 +69,7 @@ class TableSessionController extends Controller
 
         $token = 'sess_'.Str::random(32);
 
-        $sessionId = (string) Str::uuid();
         TableSession::create([
-            'id' => $sessionId,
             'table_id' => $table->id,
             'customer_id' => $customerId,
             'token' => $token,
@@ -97,30 +93,5 @@ class TableSessionController extends Controller
                 'session_enabled' => true,
             ],
         ]);
-    }
-
-    private function resolveCustomerId(Request $request): ?string
-    {
-        $user = $request->user();
-        if ($user instanceof Customer) {
-            return $user->id;
-        }
-
-        $header = $request->bearerToken();
-        if (! $header) {
-            return null;
-        }
-
-        $token = PersonalAccessToken::findToken($header);
-        if (! $token) {
-            return null;
-        }
-
-        $owner = $token->tokenable;
-        if ($owner instanceof Customer && $token->can('customer')) {
-            return $owner->id;
-        }
-
-        return null;
     }
 }

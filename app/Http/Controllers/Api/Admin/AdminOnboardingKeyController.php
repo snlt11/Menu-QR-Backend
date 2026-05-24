@@ -9,7 +9,11 @@ use Illuminate\Http\JsonResponse;
 
 class AdminOnboardingKeyController extends Controller
 {
-    public function generate(string $id, OnboardingService $service): JsonResponse
+    public function __construct(
+        private readonly OnboardingService $onboardingService,
+    ) {}
+
+    public function generate(string $id): JsonResponse
     {
         $tenant = Tenant::find($id);
         if (! $tenant) {
@@ -17,7 +21,7 @@ class AdminOnboardingKeyController extends Controller
         }
 
         try {
-            $plainKey = $service->generateKey($tenant);
+            $plainKey = $this->onboardingService->generateKey($tenant);
         } catch (\Throwable $e) {
             report($e);
 
@@ -42,8 +46,8 @@ class AdminOnboardingKeyController extends Controller
         ]);
     }
 
-    public function regenerate(string $id, OnboardingService $service): JsonResponse
+    public function regenerate(string $id): JsonResponse
     {
-        return $this->generate($id, $service);
+        return $this->generate($id);
     }
 }

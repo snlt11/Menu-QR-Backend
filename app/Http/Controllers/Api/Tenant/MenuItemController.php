@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api\Tenant;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\Tenant\StoreMenuItemRequest;
+use App\Http\Requests\Api\Tenant\UpdateMenuItemRequest;
+use App\Models\MenuItem;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -14,8 +16,7 @@ class MenuItemController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $rows = DB::table('menu_items')
-            ->when($request->filled('category'), fn ($q) => $q->where('menu_category_id', $request->string('category')))
+        $rows = MenuItem::when($request->filled('category'), fn ($q) => $q->where('menu_category_id', $request->string('category')))
             ->orderByDesc('created_at')
             ->orderBy('name')
             ->get();
@@ -23,20 +24,9 @@ class MenuItemController extends Controller
         return response()->json(['status' => 200, 'data' => $rows]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreMenuItemRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'menu_category_id' => ['required', 'string', 'exists:menu_categories,id'],
-            'name' => ['required', 'string', 'max:255'],
-            'description' => ['sometimes', 'nullable', 'string'],
-            'price' => ['required', 'numeric', 'min:0'],
-            'currency' => ['sometimes', 'string', 'max:8'],
-            'image_url' => ['sometimes', 'nullable', 'url'],
-            'image' => ['sometimes', 'nullable', 'image', 'max:5120'],
-            'is_available' => ['sometimes', 'boolean'],
-            'status' => ['sometimes', 'string', 'in:active,inactive'],
-        ]);
-
+        $data = $request->validated();
         $slug = $this->uniqueSlug($data['menu_category_id'], Str::slug($data['name']));
 
         $imageUrl = $data['image_url'] ?? null;
@@ -44,9 +34,7 @@ class MenuItemController extends Controller
             $imageUrl = $this->uploadImage($request->file('image'), $slug);
         }
 
-        $id = (string) Str::uuid();
-        DB::table('menu_items')->insert([
-            'id' => $id,
+        $item = MenuItem::create([
             'menu_category_id' => $data['menu_category_id'],
             'name' => $data['name'],
             'slug' => $slug,
@@ -56,19 +44,17 @@ class MenuItemController extends Controller
             'image_url' => $imageUrl,
             'is_available' => $data['is_available'] ?? true,
             'status' => $data['status'] ?? 'active',
-            'created_at' => now(),
-            'updated_at' => now(),
         ]);
 
         return response()->json([
             'status' => 201,
-            'data' => DB::table('menu_items')->where('id', $id)->first(),
+            'data' => MenuItem::where('id', $item->id)->first(),
         ], 201);
     }
 
     public function show(string $tenant_slug, string $id): JsonResponse
     {
-        $row = DB::table('menu_items')->where('id', $id)->first();
+        $row = MenuItem::where('id', $id)->first();
         if (! $row) {
             return response()->json(['status' => 404, 'message' => 'Menu item not found.'], 404);
         }
@@ -76,24 +62,14 @@ class MenuItemController extends Controller
         return response()->json(['status' => 200, 'data' => $row]);
     }
 
-    public function update(Request $request, string $tenant_slug, string $id): JsonResponse
+    public function update(UpdateMenuItemRequest $request, string $tenant_slug, string $id): JsonResponse
     {
-        $row = DB::table('menu_items')->where('id', $id)->first();
+        $row = MenuItem::where('id', $id)->first();
         if (! $row) {
             return response()->json(['status' => 404, 'message' => 'Menu item not found.'], 404);
         }
 
-        $data = $request->validate([
-            'menu_category_id' => ['sometimes', 'string', 'exists:menu_categories,id'],
-            'name' => ['sometimes', 'string', 'max:255'],
-            'description' => ['sometimes', 'nullable', 'string'],
-            'price' => ['sometimes', 'numeric', 'min:0'],
-            'currency' => ['sometimes', 'string', 'max:8'],
-            'image_url' => ['sometimes', 'nullable', 'url'],
-            'image' => ['sometimes', 'nullable', 'image', 'max:5120'],
-            'is_available' => ['sometimes', 'boolean'],
-            'status' => ['sometimes', 'string', 'in:active,inactive'],
-        ]);
+        $data = $request->validated();
 
         if (isset($data['name']) && $data['name'] !== $row->name) {
             $categoryId = $data['menu_category_id'] ?? $row->menu_category_id;
@@ -105,32 +81,28 @@ class MenuItemController extends Controller
             $data['image_url'] = $this->uploadImage($request->file('image'), $slugForFile);
         }
 
-        // The `image` field is a file upload, not a DB column — strip it before update.
         unset($data['image']);
 
-        DB::table('menu_items')->where('id', $id)->update($data + ['updated_at' => now()]);
+        $row->update($data);
 
         return response()->json([
             'status' => 200,
-            'data' => DB::table('menu_items')->where('id', $id)->first(),
+            'data' => MenuItem::where('id', $id)->first(),
         ]);
     }
 
     public function destroy(string $tenant_slug, string $id): JsonResponse
     {
-        $row = DB::table('menu_items')->where('id', $id)->first();
+        $row = MenuItem::where('id', $id)->first();
         if (! $row) {
             return response()->json(['status' => 404, 'message' => 'Menu item not found.'], 404);
         }
 
-        DB::table('menu_items')->where('id', $id)->delete();
+        $row->delete();
 
         return response()->json(['status' => 200, 'data' => ['id' => $id]]);
     }
 
-    /**
-     * Store an uploaded image on the s3 disk (MinIO in dev) and return the public URL.
-     */
     private function uploadImage(UploadedFile $file, string $slug): string
     {
         $ext = strtolower($file->getClientOriginalExtension() ?: 'jpg');
@@ -148,8 +120,7 @@ class MenuItemController extends Controller
     {
         $slug = $base;
         $i = 2;
-        while (DB::table('menu_items')
-            ->where('menu_category_id', $categoryId)
+        while (MenuItem::where('menu_category_id', $categoryId)
             ->where('slug', $slug)
             ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
             ->exists()) {
