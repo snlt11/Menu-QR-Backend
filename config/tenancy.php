@@ -20,6 +20,8 @@ return [
         '127.0.0.1',
         'localhost',
         'localhost:8000',
+        'menuqr.asia',
+        '47.130.122.170',
     ],
 
     /**
