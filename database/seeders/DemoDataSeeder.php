@@ -111,6 +111,8 @@ class DemoDataSeeder extends Seeder
                 'table_number' => $t['number'],
                 'table_name' => $t['name'],
                 'qr_token' => 'tbl_'.Str::lower(Str::random(10)),
+                'public_code' => 'tbl_'.Str::lower(Str::random(10)),
+                'ordering_enabled' => true,
                 'status' => 'active',
                 'created_at' => now(),
                 'updated_at' => now(),
