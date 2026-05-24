@@ -112,7 +112,7 @@ Route::middleware(['tenant.slug', 'auth:sanctum'])
         });
 
         Route::middleware(['tenant.role:owner,manager'])->group(function () {
-            Route::get('/reports/dashboard', [ReportController::class, 'dashboard']);
+            Route::get('/dashboard', [ReportController::class, 'dashboard']);
 
             Route::apiResource('staff', StaffController::class)->parameters(['staff' => 'id']);
             Route::apiResource('tables', TableController::class)->parameters(['tables' => 'id']);
