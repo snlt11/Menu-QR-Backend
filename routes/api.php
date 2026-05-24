@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\Api\Admin\AdminAuthController;
 use App\Http\Controllers\Api\Admin\AdminTenantController;
+use App\Http\Controllers\Api\Admin\AdminTenantRequestController;
 use App\Http\Controllers\Api\Central\AuthController;
+use App\Http\Controllers\Api\Central\TenantRequestController;
 use App\Http\Controllers\Api\Central\TenantResolveController;
 use App\Http\Controllers\Api\Customer\CustomerAuthController;
 use App\Http\Controllers\Api\Customer\CustomerOrderController;
@@ -28,12 +30,13 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| Central / public — tenant resolve + tenant login
-| (shop signup is admin-only — see admin routes below)
+| Central / public — tenant resolve + tenant login + registration requests
 |--------------------------------------------------------------------------
 */
 Route::get('/tenants/resolve', TenantResolveController::class);
 Route::post('/t/{tenant_slug}/login', [AuthController::class, 'login']);
+Route::post('/tenant-requests', [TenantRequestController::class, 'store']);
+Route::get('/tenant-requests/check-slug', [TenantRequestController::class, 'checkSlug']);
 
 /*
 |--------------------------------------------------------------------------
@@ -46,6 +49,10 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::get('/me', [AdminAuthController::class, 'me']);
     Route::post('/logout', [AdminAuthController::class, 'logout']);
     Route::apiResource('tenants', AdminTenantController::class)->parameters(['tenants' => 'id']);
+    Route::get('/tenant-requests', [AdminTenantRequestController::class, 'index']);
+    Route::get('/tenant-requests/{tenantRequest}', [AdminTenantRequestController::class, 'show']);
+    Route::post('/tenant-requests/{tenantRequest}/approve', [AdminTenantRequestController::class, 'approve']);
+    Route::post('/tenant-requests/{tenantRequest}/reject', [AdminTenantRequestController::class, 'reject']);
 });
 
 /*
