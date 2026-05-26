@@ -28,6 +28,7 @@ use App\Http\Controllers\Api\Tenant\TableController;
 use App\Http\Controllers\Api\Tenant\TenantCustomerController;
 use App\Http\Controllers\Api\Tenant\TenantOrderController;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -153,6 +154,10 @@ Route::middleware(['tenant.slug'])
         Route::post('/payment-sessions/{session}/confirm-demo', [PaymentController::class, 'confirmDemo']);
         Route::get('/orders/{order}/receipt', [ReceiptController::class, 'show']);
         Route::get('/orders/{order}/receipt/download', [ReceiptController::class, 'download']);
+
+        Route::post('/broadcasting/auth', function (Request $request) {
+            return Broadcast::auth($request);
+        });
     });
 
 /*

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Tenant;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Tenant\GenerateBillRequest;
 use App\Models\Order;
+use App\Services\OrderBroadcastService;
 use App\Services\OrderFormatHelper;
 use App\Services\PaymentService;
 use Illuminate\Http\JsonResponse;
@@ -13,6 +14,7 @@ class CashierController extends Controller
 {
     public function __construct(
         private readonly PaymentService $paymentService,
+        private readonly OrderBroadcastService $broadcaster,
     ) {}
 
     public function unpaid(): JsonResponse
@@ -49,6 +51,8 @@ class CashierController extends Controller
             'payment_status' => 'pending',
         ]);
 
+        $this->broadcaster->broadcastUpdate($order->fresh(), 'payment_updated');
+
         return response()->json([
             'status' => 201,
             'data' => $result,
@@ -66,6 +70,8 @@ class CashierController extends Controller
         }
 
         $this->paymentService->confirmCashPayment($order);
+
+        $this->broadcaster->broadcastUpdate(Order::where('id', $orderId)->first(), 'payment_updated');
 
         return response()->json([
             'status' => 200,

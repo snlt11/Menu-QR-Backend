@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable([
     'id',
     'order_number',
+    'public_access_token',
     'table_id',
     'table_session_id',
     'customer_id',

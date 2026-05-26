@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Tenant\RejectKitchenOrderRequest;
 use App\Http\Requests\Api\Tenant\UpdateKitchenOrderStatusRequest;
 use App\Models\Order;
+use App\Services\OrderBroadcastService;
 use App\Services\OrderFormatHelper;
 use App\Services\OrderStatusService;
 use Illuminate\Http\JsonResponse;
@@ -15,6 +16,7 @@ class KitchenController extends Controller
 {
     public function __construct(
         private readonly OrderStatusService $statusService,
+        private readonly OrderBroadcastService $broadcaster,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -66,6 +68,8 @@ class KitchenController extends Controller
 
         $order->update(['status' => $request->validated()['status']]);
 
+        $this->broadcaster->broadcastUpdate($order->fresh(), 'status_updated');
+
         return response()->json([
             'status' => 200,
             'data' => OrderFormatHelper::formatWithItems($order->fresh()),
@@ -92,6 +96,8 @@ class KitchenController extends Controller
             'status' => 'submitted',
         ]);
 
+        $this->broadcaster->broadcastUpdate($order->fresh(), 'approved');
+
         return response()->json([
             'status' => 200,
             'data' => OrderFormatHelper::formatWithItems($order->fresh()),
@@ -117,6 +123,8 @@ class KitchenController extends Controller
             'approval_status' => 'rejected',
             'status' => 'cancelled',
         ]);
+
+        $this->broadcaster->broadcastUpdate($order->fresh(), 'rejected');
 
         return response()->json([
             'status' => 200,

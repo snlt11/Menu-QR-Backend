@@ -1,0 +1,50 @@
+<?php
+
+namespace App\Events;
+
+use App\Models\Order;
+use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Broadcasting\PrivateChannel;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Foundation\Events\Dispatchable;
+use Illuminate\Queue\SerializesModels;
+
+class OrderUpdated implements ShouldBroadcast
+{
+    use Dispatchable, InteractsWithSockets, SerializesModels;
+
+    public readonly string $tenantSlug;
+
+    public function __construct(
+        public readonly Order $order,
+        public readonly string $changeType,
+    ) {
+        $tenant = tenant();
+        $this->tenantSlug = $tenant ? $tenant->getTenantKey() : '';
+    }
+
+    public function broadcastOn(): array
+    {
+        return [
+            new PrivateChannel("tenant.{$this->tenantSlug}.order.{$this->order->id}"),
+        ];
+    }
+
+    public function broadcastWith(): array
+    {
+        return [
+            'order_id' => $this->order->id,
+            'order_number' => $this->order->order_number,
+            'change_type' => $this->changeType,
+            'status' => $this->order->status,
+            'payment_status' => $this->order->payment_status,
+            'approval_status' => $this->order->approval_status,
+            'updated_at' => $this->order->updated_at?->toIso8601String(),
+        ];
+    }
+
+    public function broadcastAs(): string
+    {
+        return 'order.updated';
+    }
+}

@@ -18,6 +18,7 @@ use App\Models\Settings;
 use App\Models\Table;
 use App\Models\TableSession;
 use App\Services\LoyaltyService;
+use App\Services\OrderBroadcastService;
 use App\Services\OrderFormatHelper;
 use App\Services\OrderPricingService;
 use Illuminate\Http\JsonResponse;
@@ -28,6 +29,7 @@ class OrderController extends Controller
 {
     public function __construct(
         private readonly ResolveCustomerAction $resolveCustomer,
+        private readonly OrderBroadcastService $broadcaster,
     ) {}
 
     public function store(StoreOrderRequest $request, string $tenant_slug, string $qr_token, OrderPricingService $pricing): JsonResponse
@@ -137,6 +139,7 @@ class OrderController extends Controller
         $order = DB::transaction(function () use ($orderNumber, $table, $price, $settings, $customerType, $checkoutType, $customerId, $approvalStatus, $tableSessionId) {
             $order = Order::create([
                 'order_number' => $orderNumber,
+                'public_access_token' => Str::random(48),
                 'table_id' => $table->id,
                 'table_session_id' => $tableSessionId,
                 'customer_id' => $customerId,
@@ -176,6 +179,7 @@ class OrderController extends Controller
             'data' => [
                 'order' => Order::where('id', $order->id)->first(),
                 'items' => OrderItem::where('order_id', $order->id)->get(),
+                'access_token' => $order->public_access_token,
             ],
         ], 201);
     }
@@ -185,6 +189,11 @@ class OrderController extends Controller
         $order = Order::where('id', $orderId)->first();
         if (! $order) {
             return response()->json(['status' => 404, 'message' => 'Order not found.'], 404);
+        }
+
+        $accessToken = $request->header('X-Order-Access-Token');
+        if ($accessToken && $order->public_access_token !== $accessToken) {
+            return response()->json(['status' => 403, 'message' => 'Access denied.'], 403);
         }
 
         if ($order->payment_status !== 'unpaid' || in_array($order->status, ['completed', 'cancelled', 'expired'])) {
@@ -278,6 +287,8 @@ class OrderController extends Controller
             ]);
         });
 
+        $this->broadcaster->broadcastUpdate($order->fresh(), 'items_updated');
+
         return response()->json([
             'status' => 200,
             'data' => [
@@ -323,6 +334,11 @@ class OrderController extends Controller
         $order = Order::where('id', $orderId)->first();
         if (! $order) {
             return response()->json(['status' => 404, 'message' => 'Order not found.'], 404);
+        }
+
+        $accessToken = request()->header('X-Order-Access-Token');
+        if ($accessToken && $order->public_access_token !== $accessToken) {
+            return response()->json(['status' => 403, 'message' => 'Access denied.'], 403);
         }
 
         $formatted = OrderFormatHelper::formatWithItems($order);

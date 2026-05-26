@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Customer\CreatePaymentSessionRequest;
 use App\Models\Order;
 use App\Models\PaymentSession;
+use App\Services\OrderBroadcastService;
 use App\Services\PaymentService;
 use Illuminate\Http\JsonResponse;
 
@@ -13,6 +14,7 @@ class PaymentController extends Controller
 {
     public function __construct(
         private readonly PaymentService $paymentService,
+        private readonly OrderBroadcastService $broadcaster,
     ) {}
 
     public function createSession(CreatePaymentSessionRequest $request, string $tenant_slug, string $orderId): JsonResponse
@@ -21,6 +23,12 @@ class PaymentController extends Controller
         if (! $order) {
             return response()->json(['status' => 404, 'message' => 'Order not found.'], 404);
         }
+
+        $accessToken = $request->header('X-Order-Access-Token');
+        if ($accessToken && $order->public_access_token !== $accessToken) {
+            return response()->json(['status' => 403, 'message' => 'Access denied.'], 403);
+        }
+
         if ($order->payment_status === 'paid') {
             return response()->json(['status' => 409, 'message' => 'Order already paid.'], 409);
         }
@@ -51,6 +59,8 @@ class PaymentController extends Controller
         }
 
         $order = $this->paymentService->confirmDemoPayment($sessionId);
+
+        $this->broadcaster->broadcastUpdate($order, 'payment_updated');
 
         return response()->json([
             'status' => 200,

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Tenant;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Services\OrderBroadcastService;
 use App\Services\OrderFormatHelper;
 use App\Services\OrderStatusService;
 use App\Services\PaymentService;
@@ -15,6 +16,7 @@ class TenantOrderController extends Controller
     public function __construct(
         private readonly OrderStatusService $statusService,
         private readonly PaymentService $paymentService,
+        private readonly OrderBroadcastService $broadcaster,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -95,6 +97,8 @@ class TenantOrderController extends Controller
         }
 
         $this->paymentService->markOrderPaid($order);
+
+        $this->broadcaster->broadcastUpdate(Order::where('id', $orderId)->first(), 'payment_updated');
 
         return response()->json([
             'status' => 200,
