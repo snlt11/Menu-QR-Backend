@@ -20,7 +20,8 @@ class UpdateMenuItemRequest extends FormRequest
             'price' => ['sometimes', 'numeric', 'min:0'],
             'currency' => ['sometimes', 'string', 'max:8'],
             'image_url' => ['sometimes', 'nullable', 'url'],
-            'image' => ['sometimes', 'nullable', 'image', 'max:5120'],
+            'image' => ['sometimes', 'nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'remove_image' => ['sometimes', 'boolean'],
             'is_available' => ['sometimes', 'boolean'],
             'status' => ['sometimes', 'string', 'in:active,inactive'],
         ];
