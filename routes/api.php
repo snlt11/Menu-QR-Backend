@@ -156,6 +156,21 @@ Route::middleware(['tenant.slug'])
         Route::get('/orders/{order}/receipt/download', [ReceiptController::class, 'download']);
 
         Route::post('/broadcasting/auth', function (Request $request) {
+            $channelName = $request->input('channel_name', '');
+
+            if (str_starts_with($channelName, 'private-') && $request->header('X-Order-Access-Token')) {
+                $broadcaster = Broadcast::getBroadcaster();
+                $normalized = $broadcaster->normalizeChannelName($channelName);
+
+                $reflection = new \ReflectionMethod($broadcaster, 'verifyUserCanAccessChannel');
+
+                try {
+                    return $reflection->invoke($broadcaster, $request, $normalized);
+                } catch (\Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException) {
+                    return response()->json(['message' => 'Unauthorized'], 403);
+                }
+            }
+
             return Broadcast::auth($request);
         });
     });

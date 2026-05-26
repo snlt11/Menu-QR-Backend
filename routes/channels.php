@@ -9,13 +9,16 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
 });
 
 Broadcast::channel('tenant.{tenantSlug}.order.{orderId}', function ($user, $tenantSlug, $orderId) {
+    $tenant = tenant();
+    $resolvedSlug = $tenant ? ($tenant->slug ?? $tenant->getTenantKey()) : null;
+
     Log::debug('Broadcast channel auth attempt', [
         'channel_tenant_slug' => $tenantSlug,
         'channel_order_id' => $orderId,
         'has_user' => (bool) $user,
         'user_class' => $user ? get_class($user) : null,
-        'tenant_initialized' => (bool) tenant(),
-        'resolved_tenant_key' => tenant() ? tenant()->getTenantKey() : null,
+        'tenant_initialized' => (bool) $tenant,
+        'resolved_slug' => $resolvedSlug,
     ]);
 
     $accessToken = request()->header('X-Order-Access-Token');
@@ -33,11 +36,10 @@ Broadcast::channel('tenant.{tenantSlug}.order.{orderId}', function ($user, $tena
             return false;
         }
 
-        $tenant = tenant();
-        if (! $tenant || $tenant->getTenantKey() !== $tenantSlug) {
+        if (! $tenant || $resolvedSlug !== $tenantSlug) {
             Log::debug('Broadcast channel auth DENIED: tenant slug mismatch', [
                 'expected' => $tenantSlug,
-                'resolved' => $tenant ? $tenant->getTenantKey() : null,
+                'resolved' => $resolvedSlug,
             ]);
 
             return false;
@@ -60,11 +62,10 @@ Broadcast::channel('tenant.{tenantSlug}.order.{orderId}', function ($user, $tena
         return false;
     }
 
-    $tenant = tenant();
-    if (! $tenant || $tenant->getTenantKey() !== $tenantSlug) {
+    if (! $tenant || $resolvedSlug !== $tenantSlug) {
         Log::debug('Broadcast channel auth DENIED: tenant slug mismatch (authed user)', [
             'expected' => $tenantSlug,
-            'resolved' => $tenant ? $tenant->getTenantKey() : null,
+            'resolved' => $resolvedSlug,
         ]);
 
         return false;

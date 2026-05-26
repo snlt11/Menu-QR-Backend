@@ -27,7 +27,7 @@ class IdentifyTenantBySlug
 
         $response = $next($request);
 
-        if (! $request->is('*broadcasting/auth*')) {
+        if (! $request->is('*/broadcasting/auth')) {
             tenancy()->end();
         }
 

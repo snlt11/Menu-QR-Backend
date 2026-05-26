@@ -21,7 +21,7 @@ class OrderUpdated implements ShouldBroadcastNow
         public readonly string $changeType,
     ) {
         $tenant = tenant();
-        $this->tenantSlug = $tenant ? $tenant->getTenantKey() : '';
+        $this->tenantSlug = $tenant ? ($tenant->slug ?? $tenant->getTenantKey()) : '';
 
         Log::debug('OrderUpdated event constructed', [
             'channel' => "tenant.{$this->tenantSlug}.order.{$this->order->id}",
