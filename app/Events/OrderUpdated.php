@@ -5,11 +5,12 @@ namespace App\Events;
 use App\Models\Order;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
-class OrderUpdated implements ShouldBroadcast
+class OrderUpdated implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
@@ -21,6 +22,15 @@ class OrderUpdated implements ShouldBroadcast
     ) {
         $tenant = tenant();
         $this->tenantSlug = $tenant ? $tenant->getTenantKey() : '';
+
+        Log::debug('OrderUpdated event constructed', [
+            'channel' => "tenant.{$this->tenantSlug}.order.{$this->order->id}",
+            'event' => $this->broadcastAs(),
+            'change_type' => $changeType,
+            'order_status' => $this->order->status,
+            'approval_status' => $this->order->approval_status,
+            'payment_status' => $this->order->payment_status,
+        ]);
     }
 
     public function broadcastOn(): array

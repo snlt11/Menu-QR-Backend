@@ -25,10 +25,12 @@ class IdentifyTenantBySlug
 
         tenancy()->initialize($tenant);
 
-        try {
-            return $next($request);
-        } finally {
+        $response = $next($request);
+
+        if (! $request->is('*broadcasting/auth*')) {
             tenancy()->end();
         }
+
+        return $response;
     }
 }
