@@ -9,8 +9,16 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
 });
 
 Broadcast::channel('tenant.{tenantSlug}.order.{orderId}', function ($user, $tenantSlug, $orderId) {
-    $tenant = tenant();
-    $resolvedSlug = $tenant ? ($tenant->slug ?? $tenant->getTenantKey()) : null;
+    try {
+        $tenant = tenant();
+        $resolvedSlug = $tenant ? ($tenant->slug ?? $tenant->getTenantKey()) : null;
+    } catch (\Throwable $e) {
+        Log::debug('Broadcast channel auth DENIED: tenant lookup failed', [
+            'error' => $e->getMessage(),
+        ]);
+
+        return false;
+    }
 
     Log::debug('Broadcast channel auth attempt', [
         'channel_tenant_slug' => $tenantSlug,
@@ -24,9 +32,17 @@ Broadcast::channel('tenant.{tenantSlug}.order.{orderId}', function ($user, $tena
     $accessToken = request()->header('X-Order-Access-Token');
 
     if ($accessToken) {
-        $order = Order::where('id', $orderId)
-            ->where('public_access_token', $accessToken)
-            ->first();
+        try {
+            $order = Order::where('id', $orderId)
+                ->where('public_access_token', $accessToken)
+                ->first();
+        } catch (\Throwable $e) {
+            Log::debug('Broadcast channel auth DENIED: order lookup failed', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
 
         if (! $order) {
             Log::debug('Broadcast channel auth DENIED: guest token mismatch', [
@@ -71,7 +87,16 @@ Broadcast::channel('tenant.{tenantSlug}.order.{orderId}', function ($user, $tena
         return false;
     }
 
-    $order = Order::where('id', $orderId)->first();
+    try {
+        $order = Order::where('id', $orderId)->first();
+    } catch (\Throwable $e) {
+        Log::debug('Broadcast channel auth DENIED: order lookup failed (authed)', [
+            'error' => $e->getMessage(),
+        ]);
+
+        return false;
+    }
+
     if (! $order) {
         Log::debug('Broadcast channel auth DENIED: order not found', [
             'order_id' => $orderId,
