@@ -12,6 +12,8 @@ class Plan extends Model
 {
     use HasUuids;
 
+    protected $connection = 'central';
+
     protected $keyType = 'string';
 
     public $incrementing = false;

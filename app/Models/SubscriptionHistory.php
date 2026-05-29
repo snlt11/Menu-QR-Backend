@@ -12,6 +12,8 @@ class SubscriptionHistory extends Model
 {
     use HasUuids;
 
+    protected $connection = 'central';
+
     public $timestamps = false;
 
     protected $keyType = 'string';
