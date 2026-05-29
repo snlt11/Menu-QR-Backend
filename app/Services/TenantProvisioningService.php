@@ -13,6 +13,7 @@ class TenantProvisioningService
     public function __construct(
         private readonly CreateTenantAction $createTenantAction,
         private readonly OnboardingService $onboardingService,
+        private readonly TenantSubscriptionService $subscriptionService,
     ) {}
 
     public function approveTenantRequest(TenantRequest $request): array
@@ -47,6 +48,8 @@ class TenantProvisioningService
             ]);
 
             $plainKey = $this->onboardingService->generateKey($tenant);
+
+            $this->subscriptionService->startFreeTrial($tenant);
 
             return ['tenant' => $tenant, 'onboarding_key' => $plainKey];
         });

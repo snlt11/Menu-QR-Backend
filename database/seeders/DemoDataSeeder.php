@@ -3,7 +3,9 @@
 namespace Database\Seeders;
 
 use App\Actions\CreateTenantAction;
+use App\Models\Plan;
 use App\Models\Tenant;
+use App\Models\TenantSubscription;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
@@ -66,6 +68,8 @@ class DemoDataSeeder extends Seeder
             $customerIds = $this->seedCustomers($shop);
             $this->seedOrders($shop, $tableIds, $itemIds, $customerIds);
         });
+
+        $this->seedSubscription($tenant);
 
         $this->command?->info("seeded: {$slug}");
     }
@@ -446,5 +450,25 @@ class DemoDataSeeder extends Seeder
                 ->where('customer_id', $customerId)
                 ->increment('total_points', $earned);
         }
+    }
+
+    private function seedSubscription(Tenant $tenant): void
+    {
+        $plan = Plan::where('slug', 'free-trial')->first();
+        if (! $plan) {
+            return;
+        }
+
+        TenantSubscription::updateOrCreate(
+            ['tenant_id' => $tenant->id],
+            [
+                'plan_id' => $plan->id,
+                'status' => 'trialing',
+                'starts_at' => now(),
+                'trial_ends_at' => now()->addDays(14),
+                'current_period_starts_at' => now(),
+                'current_period_ends_at' => now()->addDays(14),
+            ],
+        );
     }
 }

@@ -2,19 +2,21 @@
 
 use App\Http\Controllers\Api\Admin\AdminAuthController;
 use App\Http\Controllers\Api\Admin\AdminOnboardingKeyController;
+use App\Http\Controllers\Api\Admin\AdminPlanController;
+use App\Http\Controllers\Api\Admin\AdminSubscriptionController;
 use App\Http\Controllers\Api\Admin\AdminTenantController;
 use App\Http\Controllers\Api\Admin\AdminTenantRequestController;
 use App\Http\Controllers\Api\Central\AuthController;
 use App\Http\Controllers\Api\Central\OnboardingController;
 use App\Http\Controllers\Api\Central\TenantRequestController;
 use App\Http\Controllers\Api\Central\TenantResolveController;
+use App\Http\Controllers\Api\Customer\BroadcastAuthController;
 use App\Http\Controllers\Api\Customer\CustomerAuthController;
 use App\Http\Controllers\Api\Customer\CustomerOrderController;
 use App\Http\Controllers\Api\Customer\MenuController;
 use App\Http\Controllers\Api\Customer\OrderController;
 use App\Http\Controllers\Api\Customer\PaymentController;
 use App\Http\Controllers\Api\Customer\ReceiptController;
-use App\Http\Controllers\Api\Customer\BroadcastAuthController;
 use App\Http\Controllers\Api\Customer\TableSessionController;
 use App\Http\Controllers\Api\Tenant\CashierController;
 use App\Http\Controllers\Api\Tenant\KitchenController;
@@ -29,7 +31,6 @@ use App\Http\Controllers\Api\Tenant\TableController;
 use App\Http\Controllers\Api\Tenant\TenantCustomerController;
 use App\Http\Controllers\Api\Tenant\TenantOrderController;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -61,6 +62,11 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::get('/tenant-requests/{tenantRequest}', [AdminTenantRequestController::class, 'show']);
     Route::post('/tenant-requests/{tenantRequest}/approve', [AdminTenantRequestController::class, 'approve']);
     Route::post('/tenant-requests/{tenantRequest}/reject', [AdminTenantRequestController::class, 'reject']);
+    Route::get('/plans/active', [AdminPlanController::class, 'active']);
+    Route::apiResource('plans', AdminPlanController::class)->parameters(['plans' => 'plan']);
+    Route::get('/subscriptions', [AdminSubscriptionController::class, 'index']);
+    Route::get('/subscriptions/{tenant}', [AdminSubscriptionController::class, 'show']);
+    Route::patch('/subscriptions/{tenant}', [AdminSubscriptionController::class, 'update']);
 });
 
 /*
@@ -68,7 +74,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
 | Tenant staff — authed tenant.users; tenant context initialized FIRST
 |--------------------------------------------------------------------------
 */
-Route::middleware(['tenant.slug', 'auth:sanctum'])
+Route::middleware(['tenant.slug', 'auth:sanctum', 'tenant.sub'])
     ->prefix('t/{tenant_slug}')
     ->group(function () {
         Route::get('/me', function (Request $request) {
@@ -147,12 +153,15 @@ Route::middleware(['tenant.slug'])
         Route::post('/auth/register', [CustomerAuthController::class, 'register']);
         Route::post('/auth/login', [CustomerAuthController::class, 'login']);
 
-        Route::post('/table/{qr_token}/orders', [OrderController::class, 'store']);
-        Route::patch('/orders/{order}/items', [OrderController::class, 'updateItems']);
+        Route::middleware(['tenant.orders'])->group(function () {
+            Route::post('/table/{qr_token}/orders', [OrderController::class, 'store']);
+            Route::patch('/orders/{order}/items', [OrderController::class, 'updateItems']);
+            Route::post('/orders/{order}/apply-points', [OrderController::class, 'applyPoints']);
+            Route::post('/orders/{order}/payments', [PaymentController::class, 'createSession']);
+            Route::post('/payment-sessions/{session}/confirm-demo', [PaymentController::class, 'confirmDemo']);
+        });
+
         Route::get('/orders/{order}/status', [OrderController::class, 'status']);
-        Route::post('/orders/{order}/apply-points', [OrderController::class, 'applyPoints']);
-        Route::post('/orders/{order}/payments', [PaymentController::class, 'createSession']);
-        Route::post('/payment-sessions/{session}/confirm-demo', [PaymentController::class, 'confirmDemo']);
         Route::get('/orders/{order}/receipt', [ReceiptController::class, 'show']);
         Route::get('/orders/{order}/receipt/download', [ReceiptController::class, 'download']);
 
