@@ -20,6 +20,7 @@ class UpdateTenantRequest extends FormRequest
             'owner_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'owner_email' => ['sometimes', 'nullable', 'email', 'max:255'],
             'status' => ['sometimes', 'required', 'string', 'in:active,inactive,suspended'],
+            'owner_password' => ['nullable', 'string', 'min:6', 'max:255'],
             'owner_phone' => ['sometimes', 'nullable', 'string', 'max:50'],
             'notes' => ['sometimes', 'nullable', 'string', 'max:1000'],
         ];

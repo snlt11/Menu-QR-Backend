@@ -10,6 +10,7 @@ use App\Models\Tenant;
 use App\Services\OnboardingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -110,11 +111,18 @@ class AdminTenantController extends Controller
                 unset($data['notes']);
             }
 
+            $ownerPassword = $data['owner_password'] ?? null;
+            unset($data['owner_password']);
+
+            $oldOwnerEmail = $tenant->owner_email;
+
             $tenant->fill($data);
             if (! empty($tenantData)) {
                 $tenant->data = $tenantData;
             }
             $tenant->save();
+
+            $this->syncOwnerToTenantDb($tenant, $oldOwnerEmail, $ownerPassword);
         } catch (ValidationException $e) {
             throw $e;
         } catch (\Throwable $e) {
@@ -158,5 +166,45 @@ class AdminTenantController extends Controller
         }
 
         return response()->json(['message' => 'Tenant deleted successfully.']);
+    }
+
+    private function syncOwnerToTenantDb(Tenant $tenant, ?string $oldOwnerEmail, ?string $newPassword): void
+    {
+        $needsNameSync = $tenant->wasChanged('owner_name');
+        $needsEmailSync = $tenant->wasChanged('owner_email');
+
+        if (! $needsNameSync && ! $needsEmailSync && ! $newPassword) {
+            return;
+        }
+
+        try {
+            $tenant->run(function () use ($tenant, $oldOwnerEmail, $needsNameSync, $needsEmailSync, $newPassword) {
+                $query = DB::table('users')->where('role', 'owner');
+
+                if ($needsEmailSync && $oldOwnerEmail) {
+                    $query->where('email', $oldOwnerEmail);
+                }
+
+                $updates = [];
+
+                if ($needsNameSync) {
+                    $updates['name'] = $tenant->owner_name;
+                }
+
+                if ($needsEmailSync) {
+                    $updates['email'] = $tenant->owner_email;
+                }
+
+                if ($newPassword) {
+                    $updates['password'] = Hash::make($newPassword);
+                }
+
+                if (! empty($updates)) {
+                    $query->update($updates);
+                }
+            });
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 }
