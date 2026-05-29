@@ -32,12 +32,12 @@ class DemoDataSeeder extends Seeder
             ['email' => 'admin@menuqr.asia'],
             [
                 'name' => 'Platform Admin',
-                'password' => Hash::make('554433221100'),
+                'password' => Hash::make('554433221100@admin@menuqr.asia'),
                 'global_role' => 'admin',
                 'status' => 'active',
             ],
         );
-        $this->command?->info('seeded admin: admin@menuqr.asia / 554433221100');
+        $this->command?->info('seeded admin: admin@menuqr.asia / password');
     }
 
     private function seedShop(string $slug, array $shop): void

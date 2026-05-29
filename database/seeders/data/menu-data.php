@@ -18,9 +18,9 @@ return [
         'currency' => 'MMK',
         'owner' => [
             'name' => 'Ko Aung',
-            'email' => 'koaung@demo.menuqr.app',
+            'email' => 'demo@menuqr.asia',
             'phone' => '+95 9 777 888 999',
-            'password' => 'password',
+            'password' => 'demo12345',
         ],
         'tables' => [
             ['number' => '1', 'name' => 'Table 1'],
