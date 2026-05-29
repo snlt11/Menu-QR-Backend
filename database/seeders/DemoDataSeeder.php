@@ -37,7 +37,7 @@ class DemoDataSeeder extends Seeder
                 'status' => 'active',
             ],
         );
-        $this->command?->info('seeded admin: admin@menuqr.asia / password');
+        $this->command?->info('seeded admin: admin@menuqr.asia / 554433221100@admin@menuqr.asia');
     }
 
     private function seedShop(string $slug, array $shop): void

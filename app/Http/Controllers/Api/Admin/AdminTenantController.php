@@ -100,14 +100,6 @@ class AdminTenantController extends Controller
 
         $data = $request->validated();
 
-        \Log::info('TENANT_UPDATE_RAW', [
-            'id' => $id,
-            'has_password_key' => array_key_exists('owner_password', $data),
-            'password_value_set' => isset($data['owner_password']) && $data['owner_password'] !== null,
-            'raw_input' => $request->input('owner_password'),
-            'all_keys' => array_keys($request->all()),
-        ]);
-
         try {
             $tenantData = $tenant->data ?? [];
             if (array_key_exists('owner_phone', $data)) {
@@ -131,14 +123,6 @@ class AdminTenantController extends Controller
             $tenant->save();
 
             $this->syncOwnerToTenantDb($tenant, $oldOwnerEmail, $ownerPassword);
-
-            \Log::info('TENANT_UPDATE_SYNC', [
-                'old_email' => $oldOwnerEmail,
-                'new_email' => $tenant->owner_email,
-                'password_provided' => $ownerPassword ? 'yes' : 'no',
-                'name_changed' => $tenant->wasChanged('owner_name') ? 'yes' : 'no',
-                'email_changed' => $tenant->wasChanged('owner_email') ? 'yes' : 'no',
-            ]);
         } catch (ValidationException $e) {
             throw $e;
         } catch (\Throwable $e) {
