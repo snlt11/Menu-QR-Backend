@@ -58,8 +58,11 @@ class ReportExportService
             $rowNum++;
         }
 
-        foreach (range('A', $col) as $column) {
-            $sheet->getColumnDimension($column)->setAutoSize(true);
+        $lastCol = --$col;
+        if ($lastCol >= 'A') {
+            foreach (range('A', $lastCol) as $column) {
+                $sheet->getColumnDimension($column)->setAutoSize(true);
+            }
         }
 
         return $spreadsheet;

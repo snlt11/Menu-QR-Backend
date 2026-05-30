@@ -193,8 +193,7 @@ class ReportController extends Controller
         $query = OrderItem::query()
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
             ->whereDate('orders.created_at', '>=', $from)
-            ->whereDate('orders.created_at', '<=', $to)
-            ->whereNull('orders.deleted_at');
+            ->whereDate('orders.created_at', '<=', $to);
 
         $items = $query
             ->leftJoin('menu_items', 'order_items.menu_item_id', '=', 'menu_items.id')
