@@ -122,6 +122,16 @@ Route::middleware(['tenant.slug', 'auth:sanctum', 'tenant.sub'])
         Route::middleware(['tenant.role:owner,manager'])->group(function () {
             Route::get('/dashboard', [ReportController::class, 'dashboard']);
 
+            Route::get('/reports/summary', [ReportController::class, 'summary']);
+            Route::get('/reports/orders', [ReportController::class, 'orders']);
+            Route::get('/reports/menu-item-sales', [ReportController::class, 'menuItemSales']);
+            Route::get('/reports/export/sales/csv', [ReportController::class, 'exportSalesCsv']);
+            Route::get('/reports/export/sales/excel', [ReportController::class, 'exportSalesExcel']);
+            Route::get('/reports/export/orders/csv', [ReportController::class, 'exportOrdersCsv']);
+            Route::get('/reports/export/orders/excel', [ReportController::class, 'exportOrdersExcel']);
+            Route::get('/reports/export/menu-item-sales/csv', [ReportController::class, 'exportMenuItemSalesCsv']);
+            Route::get('/reports/export/menu-item-sales/excel', [ReportController::class, 'exportMenuItemSalesExcel']);
+
             Route::apiResource('staff', StaffController::class)->parameters(['staff' => 'id']);
             Route::apiResource('tables', TableController::class)->parameters(['tables' => 'id']);
             Route::post('/tables/{id}/toggle-ordering', [TableController::class, 'toggleOrdering']);
