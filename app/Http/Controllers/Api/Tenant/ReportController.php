@@ -276,7 +276,9 @@ class ReportController extends Controller
 
     public function exportSalesExcel(ReportRequest $request, string $tenant_slug)
     {
-        return $this->exportService->excel(...$this->buildSalesExport($request, $tenant_slug), 'Sales Report');
+        [$headers, $rows, $filename, $title, $dateRange] = $this->buildSalesExport($request, $tenant_slug);
+
+        return $this->exportService->excel($headers, $rows, $filename, $title, $dateRange, 'Sales Report');
     }
 
     public function exportOrdersCsv(ReportRequest $request, string $tenant_slug)
@@ -286,7 +288,9 @@ class ReportController extends Controller
 
     public function exportOrdersExcel(ReportRequest $request, string $tenant_slug)
     {
-        return $this->exportService->excel(...$this->buildOrdersExport($request, $tenant_slug), 'Orders Report');
+        [$headers, $rows, $filename, $title, $dateRange] = $this->buildOrdersExport($request, $tenant_slug);
+
+        return $this->exportService->excel($headers, $rows, $filename, $title, $dateRange, 'Orders Report');
     }
 
     public function exportMenuItemSalesCsv(ReportRequest $request, string $tenant_slug)
@@ -296,7 +300,88 @@ class ReportController extends Controller
 
     public function exportMenuItemSalesExcel(ReportRequest $request, string $tenant_slug)
     {
-        return $this->exportService->excel(...$this->buildMenuItemSalesExport($request, $tenant_slug), 'Menu Item Sales');
+        [$headers, $rows, $filename, $title, $dateRange] = $this->buildMenuItemSalesExport($request, $tenant_slug);
+
+        return $this->exportService->excel($headers, $rows, $filename, $title, $dateRange, 'Menu Item Sales');
+    }
+
+    public function exportOverallExcel(ReportRequest $request, string $tenant_slug)
+    {
+        $tenantName = tenant()->name ?? $tenant_slug;
+        $from = $request->input('from', today()->toDateString());
+        $to = $request->input('to', today()->toDateString());
+
+        $summaryData = $this->summary($request, $tenant_slug)->getData(true)['data'];
+        $ordersData = $this->orders($request, $tenant_slug)->getData(true)['data'];
+        $menuItemData = $this->menuItemSales($request, $tenant_slug)->getData(true)['data'];
+
+        $overviewRows = [
+            ['Total sales', self::formatMoney($summaryData['total_sales'])],
+            ['Total orders', (string) $summaryData['total_orders']],
+            ['Paid orders', (string) $summaryData['paid_orders']],
+            ['Unpaid bills', (string) $summaryData['unpaid_bills']],
+            ['Rejected orders', (string) $summaryData['rejected_orders']],
+            ['Average order value', self::formatMoney($summaryData['average_order_value'])],
+            ['Points redeemed', (string) $summaryData['points_redeemed']],
+        ];
+
+        foreach ($summaryData['payment_breakdown'] as $method => $total) {
+            $overviewRows[] = ['Payment ('.self::formatPaymentMethod($method).')', self::formatMoney($total)];
+        }
+
+        $ordersRows = array_map(function ($order) {
+            return [
+                $order['order_number'],
+                $order['table_name'],
+                $order['customer_name'],
+                $order['customer_type'],
+                self::formatStatus($order['payment_status']),
+                self::formatStatus($order['approval_status']),
+                self::formatStatus($order['status']),
+                self::formatMoney($order['payable_amount']),
+                self::formatDate($order['created_at']),
+            ];
+        }, $ordersData);
+
+        $menuRows = array_map(function ($item) {
+            return [
+                $item['item_name'],
+                $item['category_name'],
+                (string) $item['quantity_sold'],
+                self::formatMoney($item['total_amount']),
+            ];
+        }, $menuItemData);
+
+        $sheets = [
+            [
+                'title' => 'Menu QR - Overall Report',
+                'tenantName' => $tenantName,
+                'dateRange' => self::formatDateRangeLabel($from, $to),
+                'headers' => ['Metric', 'Value'],
+                'rows' => $overviewRows,
+                'sheetName' => 'Overview',
+            ],
+            [
+                'title' => 'Menu QR - Orders Report',
+                'tenantName' => $tenantName,
+                'dateRange' => self::formatDateRangeLabel($from, $to),
+                'headers' => ['Order #', 'Table', 'Customer', 'Customer Type', 'Payment', 'Approval', 'Status', 'Total Amount', 'Date'],
+                'rows' => $ordersRows,
+                'sheetName' => 'Orders Report',
+            ],
+            [
+                'title' => 'Menu QR - Menu Item Sales',
+                'tenantName' => $tenantName,
+                'dateRange' => self::formatDateRangeLabel($from, $to),
+                'headers' => ['Item', 'Category', 'Quantity Sold', 'Total Amount'],
+                'rows' => $menuRows,
+                'sheetName' => 'Menu Item Sales',
+            ],
+        ];
+
+        $filename = "overall-report-{$tenant_slug}-{$this->dateFilename($from, $to)}";
+
+        return $this->exportService->multiSheetExcel($sheets, $filename);
     }
 
     private function buildSalesExport(ReportRequest $request, string $tenant_slug): array

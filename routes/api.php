@@ -125,6 +125,7 @@ Route::middleware(['tenant.slug', 'auth:sanctum', 'tenant.sub'])
             Route::get('/reports/summary', [ReportController::class, 'summary']);
             Route::get('/reports/orders', [ReportController::class, 'orders']);
             Route::get('/reports/menu-item-sales', [ReportController::class, 'menuItemSales']);
+            Route::get('/reports/export/overall/excel', [ReportController::class, 'exportOverallExcel']);
             Route::get('/reports/export/sales/csv', [ReportController::class, 'exportSalesCsv']);
             Route::get('/reports/export/sales/excel', [ReportController::class, 'exportSalesExcel']);
             Route::get('/reports/export/orders/csv', [ReportController::class, 'exportOrdersCsv']);
