@@ -15,7 +15,7 @@ class ReportExportService
         $writer = new CsvWriter($spreadsheet);
         $writer->setDelimiter(',');
         $writer->setEnclosure('"');
-        $writer->setOutputBOM(true);
+        $writer->setUseBOM(true);
 
         return response()->streamDownload(function () use ($writer) {
             $writer->save('php://output');

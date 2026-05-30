@@ -81,12 +81,12 @@ class ReportController extends Controller
         $from = $request->input('from', today()->toDateString());
         $to = $request->input('to', today()->toDateString());
 
-        $query = Order::whereDate('created_at', '>=', $from)
-            ->whereDate('created_at', '<=', $to);
+        $query = Order::whereDate('orders.created_at', '>=', $from)
+            ->whereDate('orders.created_at', '<=', $to);
 
-        $paidQuery = (clone $query)->where('payment_status', 'paid');
-        $unpaidQuery = (clone $query)->whereIn('payment_status', ['unpaid', 'pending']);
-        $rejectedQuery = (clone $query)->where('approval_status', 'rejected');
+        $paidQuery = (clone $query)->where('orders.payment_status', 'paid');
+        $unpaidQuery = (clone $query)->whereIn('orders.payment_status', ['unpaid', 'pending']);
+        $rejectedQuery = (clone $query)->where('orders.approval_status', 'rejected');
 
         $pointsRedeemed = LoyaltyPointTransaction::where('type', 'redeem')
             ->whereDate('created_at', '>=', $from)
@@ -101,7 +101,7 @@ class ReportController extends Controller
             ->pluck('total', 'payments.method')
             ->toArray();
 
-        $totalSales = (float) (clone $paidQuery)->sum('payable_amount');
+        $totalSales = (float) (clone $paidQuery)->sum('orders.payable_amount');
         $totalOrders = (clone $query)->count();
         $paidOrders = (clone $paidQuery)->count();
         $unpaidBills = (clone $unpaidQuery)->count();
@@ -131,8 +131,8 @@ class ReportController extends Controller
         $to = $request->input('to', today()->toDateString());
 
         $query = Order::with(['table', 'customer'])
-            ->whereDate('created_at', '>=', $from)
-            ->whereDate('created_at', '<=', $to);
+            ->whereDate('orders.created_at', '>=', $from)
+            ->whereDate('orders.created_at', '<=', $to);
 
         if ($request->filled('payment_status')) {
             $query->where('payment_status', $request->input('payment_status'));
