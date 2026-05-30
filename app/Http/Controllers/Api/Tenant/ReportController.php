@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Services\OrderFormatHelper;
 use App\Services\ReportExportService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
@@ -18,6 +19,54 @@ class ReportController extends Controller
     public function __construct(
         private readonly ReportExportService $exportService,
     ) {}
+
+    private static function formatMoney(float $amount): string
+    {
+        return 'MMK '.number_format($amount, 0, '.', ',');
+    }
+
+    private static function formatPaymentMethod(string $method): string
+    {
+        $map = [
+            'qr_payment' => 'QR Payment',
+            'cash' => 'Cash',
+            'demo_qr' => 'QR Payment',
+            'unpaid' => 'Unpaid',
+        ];
+
+        return $map[$method] ?? ucfirst(str_replace('_', ' ', $method));
+    }
+
+    private static function formatStatus(string $status): string
+    {
+        return ucfirst(str_replace('_', ' ', $status));
+    }
+
+    private static function formatDate(string $isoDate): string
+    {
+        try {
+            return Carbon::parse($isoDate)->format('d M Y, h:i A');
+        } catch (\Throwable) {
+            return $isoDate;
+        }
+    }
+
+    private static function formatDateRangeLabel(string $from, string $to): string
+    {
+        try {
+            $fromFormatted = Carbon::parse($from)->format('d M Y');
+            $toFormatted = Carbon::parse($to)->format('d M Y');
+
+            return "Date range: {$fromFormatted} - {$toFormatted}";
+        } catch (\Throwable) {
+            return "Date range: {$from} - {$to}";
+        }
+    }
+
+    private function dateFilename(string $from, string $to): string
+    {
+        return "{$from}-to-{$to}";
+    }
 
     public function dashboard(): JsonResponse
     {
@@ -222,135 +271,113 @@ class ReportController extends Controller
 
     public function exportSalesCsv(ReportRequest $request, string $tenant_slug)
     {
-        $data = $this->summary($request, $tenant_slug)->getData(true)['data'];
-
-        $headers = ['Metric', 'Value'];
-        $rows = [
-            ['Total sales', $data['total_sales']],
-            ['Total orders', $data['total_orders']],
-            ['Paid orders', $data['paid_orders']],
-            ['Unpaid bills', $data['unpaid_bills']],
-            ['Rejected orders', $data['rejected_orders']],
-            ['Average order value', $data['average_order_value']],
-            ['Points redeemed', $data['points_redeemed']],
-        ];
-
-        foreach ($data['payment_breakdown'] as $method => $total) {
-            $rows[] = ["Payment ({$method})", $total];
-        }
-
-        $date = today()->format('Y-m-d');
-
-        return $this->exportService->csv($headers, $rows, "sales-report-{$tenant_slug}-{$date}");
+        return $this->exportService->csv(...$this->buildSalesExport($request, $tenant_slug));
     }
 
     public function exportSalesExcel(ReportRequest $request, string $tenant_slug)
     {
-        $data = $this->summary($request, $tenant_slug)->getData(true)['data'];
-
-        $headers = ['Metric', 'Value'];
-        $rows = [
-            ['Total sales', $data['total_sales']],
-            ['Total orders', $data['total_orders']],
-            ['Paid orders', $data['paid_orders']],
-            ['Unpaid bills', $data['unpaid_bills']],
-            ['Rejected orders', $data['rejected_orders']],
-            ['Average order value', $data['average_order_value']],
-            ['Points redeemed', $data['points_redeemed']],
-        ];
-
-        foreach ($data['payment_breakdown'] as $method => $total) {
-            $rows[] = ["Payment ({$method})", $total];
-        }
-
-        $date = today()->format('Y-m-d');
-
-        return $this->exportService->excel($headers, $rows, "sales-report-{$tenant_slug}-{$date}");
+        return $this->exportService->excel(...$this->buildSalesExport($request, $tenant_slug), 'Sales Report');
     }
 
     public function exportOrdersCsv(ReportRequest $request, string $tenant_slug)
     {
-        $data = $this->orders($request, $tenant_slug)->getData(true)['data'];
-
-        $headers = ['Order #', 'Table', 'Customer', 'Customer Type', 'Payment', 'Approval', 'Status', 'Total Amount', 'Date'];
-        $rows = array_map(function ($order) {
-            return [
-                $order['order_number'],
-                $order['table_name'],
-                $order['customer_name'],
-                $order['customer_type'],
-                $order['payment_status'],
-                $order['approval_status'],
-                $order['status'],
-                $order['payable_amount'],
-                $order['created_at'],
-            ];
-        }, $data);
-
-        $date = today()->format('Y-m-d');
-
-        return $this->exportService->csv($headers, $rows, "orders-report-{$tenant_slug}-{$date}");
+        return $this->exportService->csv(...$this->buildOrdersExport($request, $tenant_slug));
     }
 
     public function exportOrdersExcel(ReportRequest $request, string $tenant_slug)
     {
-        $data = $this->orders($request, $tenant_slug)->getData(true)['data'];
+        return $this->exportService->excel(...$this->buildOrdersExport($request, $tenant_slug), 'Orders Report');
+    }
 
-        $headers = ['Order #', 'Table', 'Customer', 'Customer Type', 'Payment', 'Approval', 'Status', 'Total Amount', 'Date'];
+    public function exportMenuItemSalesCsv(ReportRequest $request, string $tenant_slug)
+    {
+        return $this->exportService->csv(...$this->buildMenuItemSalesExport($request, $tenant_slug));
+    }
+
+    public function exportMenuItemSalesExcel(ReportRequest $request, string $tenant_slug)
+    {
+        return $this->exportService->excel(...$this->buildMenuItemSalesExport($request, $tenant_slug), 'Menu Item Sales');
+    }
+
+    private function buildSalesExport(ReportRequest $request, string $tenant_slug): array
+    {
+        $data = $this->summary($request, $tenant_slug)->getData(true)['data'];
+        $from = $data['from'];
+        $to = $data['to'];
+
+        $rows = [
+            ['Total sales', self::formatMoney($data['total_sales'])],
+            ['Total orders', (string) $data['total_orders']],
+            ['Paid orders', (string) $data['paid_orders']],
+            ['Unpaid bills', (string) $data['unpaid_bills']],
+            ['Rejected orders', (string) $data['rejected_orders']],
+            ['Average order value', self::formatMoney($data['average_order_value'])],
+            ['Points redeemed', (string) $data['points_redeemed']],
+        ];
+
+        foreach ($data['payment_breakdown'] as $method => $total) {
+            $rows[] = ['Payment ('.self::formatPaymentMethod($method).')', self::formatMoney($total)];
+        }
+
+        return [
+            ['Metric', 'Value'],
+            $rows,
+            "sales-report-{$tenant_slug}-{$this->dateFilename($from, $to)}",
+            'Menu QR - Sales Report',
+            self::formatDateRangeLabel($from, $to),
+        ];
+    }
+
+    private function buildOrdersExport(ReportRequest $request, string $tenant_slug): array
+    {
+        $data = $this->orders($request, $tenant_slug)->getData(true)['data'];
+        $from = $request->input('from', today()->toDateString());
+        $to = $request->input('to', today()->toDateString());
+
         $rows = array_map(function ($order) {
             return [
                 $order['order_number'],
                 $order['table_name'],
                 $order['customer_name'],
                 $order['customer_type'],
-                $order['payment_status'],
-                $order['approval_status'],
-                $order['status'],
-                $order['payable_amount'],
-                $order['created_at'],
+                self::formatStatus($order['payment_status']),
+                self::formatStatus($order['approval_status']),
+                self::formatStatus($order['status']),
+                self::formatMoney($order['payable_amount']),
+                self::formatDate($order['created_at']),
             ];
         }, $data);
 
-        $date = today()->format('Y-m-d');
-
-        return $this->exportService->excel($headers, $rows, "orders-report-{$tenant_slug}-{$date}");
+        return [
+            ['Order #', 'Table', 'Customer', 'Customer Type', 'Payment', 'Approval', 'Status', 'Total Amount', 'Date'],
+            $rows,
+            "orders-report-{$tenant_slug}-{$this->dateFilename($from, $to)}",
+            'Menu QR - Orders Report',
+            self::formatDateRangeLabel($from, $to),
+        ];
     }
 
-    public function exportMenuItemSalesCsv(ReportRequest $request, string $tenant_slug)
+    private function buildMenuItemSalesExport(ReportRequest $request, string $tenant_slug): array
     {
         $data = $this->menuItemSales($request, $tenant_slug)->getData(true)['data'];
+        $from = $request->input('from', today()->toDateString());
+        $to = $request->input('to', today()->toDateString());
 
-        $headers = ['Item', 'Category', 'Quantity Sold', 'Total Amount'];
         $rows = array_map(function ($item) {
             return [
                 $item['item_name'],
                 $item['category_name'],
-                $item['quantity_sold'],
-                $item['total_amount'],
+                (string) $item['quantity_sold'],
+                self::formatMoney($item['total_amount']),
             ];
         }, $data);
 
-        $date = today()->format('Y-m-d');
-
-        return $this->exportService->csv($headers, $rows, "menu-items-report-{$tenant_slug}-{$date}");
-    }
-
-    public function exportMenuItemSalesExcel(ReportRequest $request, string $tenant_slug)
-    {
-        $data = $this->menuItemSales($request, $tenant_slug)->getData(true)['data'];
-
-        $headers = ['Item', 'Category', 'Quantity Sold', 'Total Amount'];
-        $rows = array_map(function ($item) {
-            return [
-                $item['item_name'],
-                $item['category_name'],
-                $item['quantity_sold'],
-                $item['total_amount'],
-            ];
-        }, $data);
-
-        $date = today()->format('Y-m-d');
-
-        return $this->exportService->excel($headers, $rows, "menu-items-report-{$tenant_slug}-{$date}");
+        return [
+            ['Item', 'Category', 'Quantity Sold', 'Total Amount'],
+            $rows,
+            "menu-items-report-{$tenant_slug}-{$this->dateFilename($from, $to)}",
+            'Menu QR - Menu Item Sales Report',
+            self::formatDateRangeLabel($from, $to),
+        ];
     }
 }

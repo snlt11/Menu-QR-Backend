@@ -9,9 +9,9 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportExportService
 {
-    public function csv(array $headers, array $rows, string $filename): StreamedResponse
+    public function csv(array $headers, array $rows, string $filename, ?string $title = null, ?string $dateRange = null): StreamedResponse
     {
-        $spreadsheet = $this->buildSpreadsheet($headers, $rows);
+        $spreadsheet = $this->buildSpreadsheet($headers, $rows, $title, $dateRange);
         $writer = new CsvWriter($spreadsheet);
         $writer->setDelimiter(',');
         $writer->setEnclosure('"');
@@ -24,9 +24,14 @@ class ReportExportService
         ]);
     }
 
-    public function excel(array $headers, array $rows, string $filename): StreamedResponse
+    public function excel(array $headers, array $rows, string $filename, ?string $title = null, ?string $dateRange = null, ?string $sheetName = null): StreamedResponse
     {
-        $spreadsheet = $this->buildSpreadsheet($headers, $rows);
+        $spreadsheet = $this->buildSpreadsheet($headers, $rows, $title, $dateRange);
+
+        if ($sheetName) {
+            $spreadsheet->getActiveSheet()->setTitle(substr($sheetName, 0, 31));
+        }
+
         $writer = new XlsxWriter($spreadsheet);
 
         return response()->streamDownload(function () use ($writer) {
@@ -36,34 +41,54 @@ class ReportExportService
         ]);
     }
 
-    private function buildSpreadsheet(array $headers, array $rows): Spreadsheet
+    private function buildSpreadsheet(array $headers, array $rows, ?string $title = null, ?string $dateRange = null): Spreadsheet
     {
         $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
 
-        $col = 'A';
-        foreach ($headers as $header) {
-            $sheet->setCellValue("{$col}1", $header);
-            $sheet->getStyle("{$col}1")->getFont()->setBold(true);
-            $col++;
-        }
+        $rowNum = 1;
 
-        $rowNum = 2;
-        foreach ($rows as $row) {
-            $col = 'A';
-            foreach ($row as $cell) {
-                $sheet->setCellValue("{$col}{$rowNum}", (string) $cell);
-                $col++;
-            }
+        if ($title) {
+            $sheet->setCellValue("A{$rowNum}", $title);
+            $sheet->getStyle("A{$rowNum}")->getFont()->setBold(true)->setSize(14);
             $rowNum++;
         }
 
-        $lastCol = --$col;
-        if ($lastCol >= 'A') {
-            foreach (range('A', $lastCol) as $column) {
-                $sheet->getColumnDimension($column)->setAutoSize(true);
-            }
+        if ($dateRange) {
+            $sheet->setCellValue("A{$rowNum}", $dateRange);
+            $sheet->getStyle("A{$rowNum}")->getFont()->setSize(10);
+            $rowNum++;
+            $rowNum++;
         }
+
+        $headerRow = $rowNum;
+        $col = 'A';
+        foreach ($headers as $header) {
+            $sheet->setCellValue("{$col}{$headerRow}", $header);
+            $sheet->getStyle("{$col}{$headerRow}")->getFont()->setBold(true);
+            $col++;
+        }
+
+        $dataStartRow = $headerRow + 1;
+        foreach ($rows as $row) {
+            $col = 'A';
+            foreach ($row as $cell) {
+                $sheet->setCellValue("{$col}{$dataStartRow}", (string) $cell);
+                $col++;
+            }
+            $dataStartRow++;
+        }
+
+        $lastCol = chr(ord('A') + count($headers) - 1);
+        foreach (range('A', $lastCol) as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+
+        if ($title || $dateRange) {
+            $sheet->mergeCells("A{$rowNum}:{$lastCol}{$rowNum}");
+        }
+
+        $sheet->freezePane("A{$headerRow}");
 
         return $spreadsheet;
     }
