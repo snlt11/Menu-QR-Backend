@@ -20,7 +20,7 @@ class PrivateS3Service
             ? "{$directory}/{$tenantSlug}/{$filename}"
             : "{$directory}/{$filename}";
 
-        Storage::disk('s3')->put($path, stream_get_contents($file->getRealPath()), [
+        Storage::disk('s3')->put($path, file_get_contents($file->getRealPath()), [
             'ContentType' => $file->getMimeType() ?: 'image/jpeg',
         ]);
 
