@@ -9,7 +9,6 @@ use App\Models\MenuItem;
 use App\Models\Profile;
 use App\Models\Table;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\DB;
 
 class MenuController extends Controller
 {
@@ -32,13 +31,13 @@ class MenuController extends Controller
             ->orderBy('display_order')
             ->get();
 
-        $collectionItems = DB::table('menu_collection_items as mci')
-            ->join('menu_items as mi', 'mi.id', '=', 'mci.menu_item_id')
+        $collectionItems = MenuItem::query()
+            ->join('menu_collection_items as mci', 'mci.menu_item_id', '=', 'menu_items.id')
             ->whereIn('mci.menu_collection_id', $collections->pluck('id'))
-            ->where('mi.status', 'active')
-            ->where('mi.is_available', true)
+            ->where('menu_items.status', 'active')
+            ->where('menu_items.is_available', true)
             ->orderBy('mci.sort_order')
-            ->select('mci.menu_collection_id', 'mci.sort_order', 'mci.is_featured', 'mi.*')
+            ->select('menu_items.*', 'mci.menu_collection_id', 'mci.sort_order', 'mci.is_featured')
             ->get()
             ->groupBy('menu_collection_id');
 
